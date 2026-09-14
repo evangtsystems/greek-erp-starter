@@ -10,8 +10,8 @@ import { wrappRouter } from "./routes/wrapp.js";
 
 const app = express();
 
-// Wrapp signs the exact raw JSON payload. This route must run before express.json().
-app.use("/api/wrapp/webhooks", express.raw({ type: "application/json" }), wrappRouter);
+// Wrapp signs the exact raw JSON payload. Parse only this route as raw, before JSON parsing.
+app.use("/api/wrapp/webhooks/user-created", express.raw({ type: "application/json" }));
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
