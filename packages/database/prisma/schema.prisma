@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  CASHIER
+  ACCOUNTANT
+  VIEWER
+}
+
+enum CustomerType {
+  BUSINESS
+  INDIVIDUAL
+}
+
+enum InvoiceStatus {
+  DRAFT
+  READY
+  SUBMITTING
+  ISSUED
+  FAILED
+  CANCELLED
+  CREDITED
+}
+
+enum TransmissionStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  UNKNOWN
+}
+
+enum ProviderEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum PaymentMethodType {
+  CASH
+  CARD
+  BANK_TRANSFER
+  IRIS
+  OTHER
+}
+
+model Organization {
+  id           String   @id @default(uuid())
+  name         String
+  vatNumber    String?  @map("vat_number")
+  taxOffice    String?  @map("tax_office")
+  address      String?
+  city         String?
+  postalCode   String?  @map("postal_code")
+  country      String   @default("GR")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  members      OrganizationUser[]
+  customers    Customer[]
+  products     Product[]
+  invoiceSeries InvoiceSeries[]
+  invoices     Invoice[]
+  providerCredentials ProviderCredential[]
+  transmissions ProviderTransmission[]
+  auditLogs    AuditLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organizations OrganizationUser[]
+
+  @@map("users")
+}
+
+model OrganizationUser {
+  organizationId String           @map("organization_id")
+  userId         String           @map("user_id")
+  role           OrganizationRole @default(VIEWER)
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, userId])
+  @@map("organization_users")
+}
+
+model Customer {
+  id             String       @id @default(uuid())
+  organizationId String       @map("organization_id")
+  type           CustomerType @default(BUSINESS)
+  name           String
+  vatNumber      String?      @map("vat_number")
+  taxOffice      String?      @map("tax_office")
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  postalCode     String?      @map("postal_code")
+  country        String       @default("GR")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices     Invoice[]
+
+  @@index([organizationId])
+  @@index([organizationId, vatNumber])
+  @@map("customers")
+}
+
+model Product {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  code           String?
+  name           String
+  description    String?
+  unit           String   @default("piece")
+  unitPrice      Decimal  @db.Decimal(15, 4) @map("unit_price")
+  vatRate        Decimal  @db.Decimal(5, 2) @map("vat_rate")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoiceLines InvoiceLine[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("products")
+}
+
+model InvoiceSeries {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  code           String
+  documentType   String   @map("document_type")
+  nextNumber     Int      @default(1) @map("next_number")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices      Invoice[]
+
+  @@unique([organizationId, code, documentType])
+  @@map("invoice_series")
+}
+
+model Invoice {
+  id                 String        @id @default(uuid())
+  organizationId     String        @map("organization_id")
+  customerId         String?       @map("customer_id")
+  seriesId           String        @map("series_id")
+  invoiceNumber      Int?          @map("invoice_number")
+  documentType       String        @map("document_type")
+  issueDate          DateTime?     @map("issue_date")
+  status             InvoiceStatus @default(DRAFT)
+  currency           String        @default("EUR")
+  paymentMethod      PaymentMethodType @default(BANK_TRANSFER) @map("payment_method")
+  paymentStatus      String        @default("UNPAID") @map("payment_status")
+  netAmount          Decimal       @default(0) @db.Decimal(15, 2) @map("net_amount")
+  vatAmount          Decimal       @default(0) @db.Decimal(15, 2) @map("vat_amount")
+  totalAmount        Decimal       @default(0) @db.Decimal(15, 2) @map("total_amount")
+  providerDocumentId String?       @map("provider_document_id")
+  providerStatus     String?       @map("provider_status")
+  mydataMark         String?       @map("mydata_mark")
+  mydataUid          String?       @map("mydata_uid")
+  qrUrl              String?       @map("qr_url")
+  issuedAt           DateTime?     @map("issued_at")
+  cancelledAt        DateTime?     @map("cancelled_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  series       InvoiceSeries @relation(fields: [seriesId], references: [id], onDelete: Restrict)
+  lines        InvoiceLine[]
+  transmissions ProviderTransmission[]
+
+  @@unique([organizationId, seriesId, invoiceNumber])
+  @@index([organizationId, status])
+  @@index([organizationId, issueDate])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id                     String  @id @default(uuid())
+  invoiceId              String  @map("invoice_id")
+  productId              String? @map("product_id")
+  lineNo                 Int     @map("line_no")
+  description            String
+  quantity               Decimal @db.Decimal(15, 4)
+  unitPrice              Decimal @db.Decimal(15, 4) @map("unit_price")
+  discountAmount         Decimal @default(0) @db.Decimal(15, 2) @map("discount_amount")
+  netValue               Decimal @db.Decimal(15, 2) @map("net_value")
+  vatCategory            String? @map("vat_category")
+  vatRate                Decimal @db.Decimal(5, 2) @map("vat_rate")
+  vatAmount              Decimal @db.Decimal(15, 2) @map("vat_amount")
+  classificationType     String? @map("classification_type")
+  classificationCategory String? @map("classification_category")
+  totalValue             Decimal @db.Decimal(15, 2) @map("total_value")
+
+  invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([invoiceId, lineNo])
+  @@map("invoice_lines")
+}
+
+model ProviderTransmission {
+  id             String             @id @default(uuid())
+  organizationId String             @map("organization_id")
+  invoiceId      String             @map("invoice_id")
+  provider       String
+  requestId      String?            @map("request_id")
+  idempotencyKey String             @map("idempotency_key")
+  operation      String
+  status         TransmissionStatus @default(PENDING)
+  requestPayload Json?              @map("request_payload")
+  responsePayload Json?             @map("response_payload")
+  errorCode      String?            @map("error_code")
+  errorMessage   String?            @map("error_message")
+  attempt        Int                @default(1)
+  createdAt      DateTime           @default(now()) @map("created_at")
+  completedAt    DateTime?          @map("completed_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([idempotencyKey, attempt])
+  @@index([invoiceId])
+  @@map("provider_transmissions")
+}
+
+model ProviderCredential {
+  id             String              @id @default(uuid())
+  organizationId String              @map("organization_id")
+  provider       String
+  environment    ProviderEnvironment @default(SANDBOX)
+  enabled        Boolean             @default(true)
+  credentials    Json                @default("{}")
+  metadata       Json?               @map("metadata")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider, environment])
+  @@index([organizationId, enabled])
+  @@map("provider_credentials")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  userId         String?  @map("user_id")
+  entityType     String   @map("entity_type")
+  entityId       String   @map("entity_id")
+  action         String
+  previousData   Json?    @map("previous_data")
+  newData        Json?    @map("new_data")
+  ip             String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, entityType, entityId])
+  @@map("audit_logs")
+}

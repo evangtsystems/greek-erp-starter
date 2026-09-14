@@ -1,0 +1,19 @@
+{
+  "name": "greek-erp",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm --workspace @erp/api run dev\" \"npm --workspace @erp/web run dev\"",
+    "db:generate": "npm --workspace @erp/database run generate",
+    "db:migrate": "npm --workspace @erp/database run migrate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "lucide-react": "^1.43.0"
+  }
+}
