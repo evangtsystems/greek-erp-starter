@@ -4,15 +4,22 @@ import { prisma } from "../../../../packages/database/src/client.js";
 
 export const organizationRouter = Router();
 
-const createOrganizationSchema = z.object({
+const organizationFields = {
   name: z.string().min(1),
-  vatNumber: z.string().min(1).nullable().optional(),
-  taxOffice: z.string().min(1).nullable().optional(),
-  address: z.string().min(1).nullable().optional(),
-  city: z.string().min(1).nullable().optional(),
-  postalCode: z.string().min(1).nullable().optional(),
-  country: z.string().min(2).default("GR")
+  vatNumber: z.string().min(1).nullable(),
+  taxOffice: z.string().min(1).nullable(),
+  address: z.string().min(1).nullable(),
+  city: z.string().min(1).nullable(),
+  postalCode: z.string().min(1).nullable(),
+  country: z.string().min(2)
+};
+
+const createOrganizationSchema = z.object({
+  ...organizationFields,
+  country: organizationFields.country.default("GR")
 });
+
+const updateOrganizationSchema = z.object(organizationFields).partial();
 
 organizationRouter.post("/", async (req, res) => {
   const parsed = createOrganizationSchema.safeParse(req.body);
@@ -23,19 +30,23 @@ organizationRouter.post("/", async (req, res) => {
 
   const data = parsed.data;
 
-  const organization = await prisma.organization.create({
-    data: {
-      name: data.name,
-      vatNumber: data.vatNumber ?? null,
-      taxOffice: data.taxOffice ?? null,
-      address: data.address ?? null,
-      city: data.city ?? null,
-      postalCode: data.postalCode ?? null,
-      country: data.country
-    }
-  });
-
+  const organization = await prisma.organization.create({ data });
   res.status(201).json(organization);
+});
+
+organizationRouter.patch("/:id", async (req, res) => {
+  const parsed = updateOrganizationSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  try {
+    const organization = await prisma.organization.update({
+      where: { id: req.params.id },
+      data: parsed.data
+    });
+    res.json(organization);
+  } catch {
+    res.status(404).json({ error: "Organization not found" });
+  }
 });
 
 organizationRouter.get("/", async (_req, res) => {
