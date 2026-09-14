@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import express from "express";
 import { customerRouter } from "./routes/customers.js";
 import { invoiceSeriesRouter } from "./routes/invoice-series.js";
@@ -7,6 +9,9 @@ import { productRouter } from "./routes/products.js";
 import { providerCredentialRouter } from "./routes/provider-credentials.js";
 import { vatRouter } from "./routes/vat.js";
 import { wrappRouter } from "./routes/wrapp.js";
+
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+process.loadEnvFile(path.resolve(currentDir, "../../../.env"));
 
 const app = express();
 
