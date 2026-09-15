@@ -46,9 +46,31 @@ wrappRouter.post("/onboarding", async (req, res) => {
     }
   });
 
-  const previousPartnerUserId = (credential?.metadata as Record<string, unknown> | null)?.partnerUserId;
-  if (previousPartnerUserId && previousPartnerUserId !== partnerUserId) {
+  const priorMetadata = credential?.metadata as Record<string, unknown> | null;
+  if (priorMetadata?.partnerUserId && priorMetadata.partnerUserId !== partnerUserId) {
     return res.status(409).json({ error: "Wrapp partner_user_id is immutable and does not match this organization's VAT number" });
+  }
+
+  // Persist the pending state before contacting Wrapp. The synchronous webhook can
+  // otherwise arrive first and have its ACTIVE state overwritten after the API call.
+  if (!credential) {
+    await prisma.providerCredential.create({
+      data: {
+        organizationId: organization.id,
+        provider: "WRAPP",
+        environment: "SANDBOX",
+        enabled: false,
+        credentials: {},
+        metadata: { partnerUserId, email: parsed.data.email, wrappStatus: "ONBOARDING" } as Prisma.InputJsonObject
+      }
+    });
+  } else if (!credential.enabled) {
+    await prisma.providerCredential.update({
+      where: { id: credential.id },
+      data: {
+        metadata: { ...(priorMetadata ?? {}), partnerUserId, email: parsed.data.email, wrappStatus: "ONBOARDING" } as Prisma.InputJsonObject
+      }
+    });
   }
 
   const webhookEndpoint = parsed.data.webhookEndpoint ?? process.env.WRAPP_WEBHOOK_ENDPOINT;
@@ -77,27 +99,6 @@ wrappRouter.post("/onboarding", async (req, res) => {
     if (!response.ok || !body?.login_url) {
       return res.status(502).json({ error: "Wrapp onboarding request failed", providerResponse: body });
     }
-
-    await prisma.providerCredential.upsert({
-      where: {
-        organizationId_provider_environment: {
-          organizationId: organization.id,
-          provider: "WRAPP",
-          environment: "SANDBOX"
-        }
-      },
-      create: {
-        organizationId: organization.id,
-        provider: "WRAPP",
-        environment: "SANDBOX",
-        enabled: false,
-        credentials: {},
-        metadata: { partnerUserId, email: parsed.data.email, wrappStatus: "ONBOARDING" } as Prisma.InputJsonObject
-      },
-      update: {
-        metadata: { ...(credential?.metadata as Record<string, unknown> ?? {}), partnerUserId, email: parsed.data.email, wrappStatus: "ONBOARDING" } as Prisma.InputJsonObject
-      }
-    });
 
     res.status(201).json({ partnerUserId, loginUrl: body.login_url, status: "ONBOARDING" });
   } catch {
