@@ -21,7 +21,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Organization = { id: string; name: string; country: string };
 type Customer = { id: string; name: string; vatNumber: string | null };
-type Product = { id: string; code: string | null; name: string; description: string | null; unitPrice: string; vatRate: string; classificationType?: string | null; classificationCategory?: string | null };
+type Product = { id: string; code: string | null; name: string; description: string | null; unitPrice: string; vatRate: string; classificationType?: string | null; classificationCategory?: string | null; categoryId?: string | null; trackSerialNumbers?: boolean };
+type StockSerial = { id: string; serialNumber: string; status: "AVAILABLE" | "RESERVED" | "SOLD" | "RETURNED" | "IN_REPAIR"; notes?: string | null };
+type ProductCategory = { id: string; name: string; products: (Product & { serials: StockSerial[] })[] };
+type ProductFamily = { id: string; name: string; categories: ProductCategory[] };
 type InvoiceSeries = { id: string; code: string; documentType: string; nextNumber: number; providerBillingBookId?: string | null };
 type Invoice = {
   id: string;
@@ -59,6 +62,9 @@ const invoiceTemplates: InvoiceTemplate[] = [
   { id: "seo", title: "SEO και τοπική προβολή", description: "Βελτιστοποίηση μηχανών αναζήτησης", price: 250, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
   { id: "integration", title: "Διασύνδεση / αυτοματοποίηση", description: "API, dashboard ή αυτοματοποίηση εργασιών", price: 300, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" }
 ];
+
+const webTemplates = invoiceTemplates.filter((template) => ["website", "eshop", "maintenance", "hosting", "domain", "seo", "integration"].includes(template.id));
+const basicTemplates = invoiceTemplates.filter((template) => !webTemplates.includes(template));
 
 type VatLookup = {
   source: string;
@@ -101,6 +107,8 @@ export default function Home() {
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedSeriesId, setSelectedSeriesId] = useState("");
   const [selectedProductId, setSelectedProductId] = useState("");
+  const [catalog, setCatalog] = useState<ProductFamily[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
 
   const selectedOrganization = useMemo(
     () => organizations.find((org) => org.id === selectedOrganizationId),
@@ -109,6 +117,10 @@ export default function Home() {
   const issuedInvoices = invoices.filter((invoice) => invoice.status === "ISSUED");
   const draftInvoices = invoices.filter((invoice) => invoice.status === "DRAFT" || invoice.status === "READY");
   const totalIssued = issuedInvoices.reduce((sum, invoice) => sum + Number(invoice.totalAmount), 0);
+  const adminHeaders = (): HeadersInit => {
+    if (!wrappAdminKey) throw new Error("Συμπλήρωσε πρώτα το κλειδί διαχειριστή");
+    return { "X-ERP-ADMIN-KEY": wrappAdminKey };
+  };
 
   const loadOrganizations = async () => {
     const data = await api<Organization[]>("/organizations");
@@ -141,6 +153,17 @@ export default function Home() {
   useEffect(() => {
     loadTenantData(selectedOrganizationId).catch((error) => setMessage(error.message));
   }, [selectedOrganizationId]);
+
+  const loadCatalog = async (organizationId: string) => {
+    if (!organizationId || !wrappAdminKey) return;
+    const data = await api<ProductFamily[]>(`/catalog?organizationId=${organizationId}`, { headers: adminHeaders() });
+    setCatalog(data);
+    setSelectedCategoryId((current) => current || data[0]?.categories[0]?.id || "");
+  };
+
+  useEffect(() => {
+    loadCatalog(selectedOrganizationId).catch((error) => setMessage(error.message));
+  }, [selectedOrganizationId, wrappAdminKey]);
 
   const runAction = async (action: () => Promise<void>, success: string) => {
     setBusy(true);
@@ -204,18 +227,45 @@ export default function Home() {
     const form = new FormData(event.currentTarget);
     await api<Product>("/products", {
       method: "POST",
+      headers: adminHeaders(),
       body: JSON.stringify({
         organizationId: selectedOrganizationId,
         code: form.get("code") || null,
         name: form.get("name"),
-        unit: "hour",
+        unit: "τεμάχιο",
         unitPrice: Number(form.get("unitPrice")),
         vatRate: Number(form.get("vatRate")),
+        categoryId: form.get("categoryId") || null,
+        trackSerialNumbers: form.get("trackSerialNumbers") === "on",
         classificationType: "E3_561_001",
         classificationCategory: "category1_1"
       })
     });
-    await loadTenantData(selectedOrganizationId);
+    await Promise.all([loadTenantData(selectedOrganizationId), loadCatalog(selectedOrganizationId)]);
+  };
+
+  const createFamily = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await api("/catalog/families", { method: "POST", headers: adminHeaders(), body: JSON.stringify({ organizationId: selectedOrganizationId, name: form.get("name") }) });
+    event.currentTarget.reset();
+    await loadCatalog(selectedOrganizationId);
+  };
+
+  const createCategory = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await api("/catalog/categories", { method: "POST", headers: adminHeaders(), body: JSON.stringify({ organizationId: selectedOrganizationId, familyId: form.get("familyId"), name: form.get("name") }) });
+    event.currentTarget.reset();
+    await loadCatalog(selectedOrganizationId);
+  };
+
+  const addSerial = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await api("/catalog/serials", { method: "POST", headers: adminHeaders(), body: JSON.stringify({ organizationId: selectedOrganizationId, productId: form.get("productId"), serialNumber: form.get("serialNumber"), notes: form.get("notes") || undefined }) });
+    event.currentTarget.reset();
+    await loadCatalog(selectedOrganizationId);
   };
 
   const createSeries = async (event: FormEvent<HTMLFormElement>) => {
@@ -277,10 +327,12 @@ export default function Home() {
 
   const addDefaultTemplates = async () => {
     if (!selectedOrganizationId) throw new Error("Επίλεξε επιχείρηση πρώτα");
+    adminHeaders();
     for (const template of invoiceTemplates) {
       if (products.some((product) => product.code === `TPL-${template.id}`)) continue;
       await api<Product>("/products", {
         method: "POST",
+        headers: adminHeaders(),
         body: JSON.stringify({ organizationId: selectedOrganizationId, code: `TPL-${template.id}`, name: template.title, description: template.description, unit: "τεμάχιο", unitPrice: template.price, vatRate: template.vatRate, classificationType: template.classificationType, classificationCategory: template.classificationCategory })
       });
     }
@@ -380,8 +432,9 @@ export default function Home() {
         </section>
 
         <section className="template-panel">
-          <div><span className="eyebrow">Γρήγορη έκδοση</span><h2>Τι θέλεις να τιμολογήσεις;</h2><p>Διάλεξε πρότυπο. Οι φορολογικές προεπιλογές συμπληρώνονται αυτόματα.</p><button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(addDefaultTemplates, "Τα έτοιμα πρότυπα προστέθηκαν")}><Package size={17} />Προσθήκη έτοιμων προτύπων</button></div>
-          <div className="template-grid">{invoiceTemplates.map((template) => <button type="button" key={template.id} className={selectedTemplateId === template.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedTemplateId(template.id); setSelectedProductId(""); setTemplatePrice(template.price); }}><strong>{template.title}</strong><span>{template.description}</span><small>ΦΠΑ {template.vatRate}%</small></button>)}</div>
+          <div><span className="eyebrow">Γρήγορη έκδοση</span><h2>Τι θέλεις να τιμολογήσεις;</h2><p>Διάλεξε πρότυπο. Οι φορολογικές προεπιλογές συμπληρώνονται αυτόματα.</p><button className="secondary" disabled={busy || !selectedOrganizationId || !wrappAdminKey} onClick={() => runAction(addDefaultTemplates, "Τα έτοιμα πρότυπα προστέθηκαν")}><Package size={17} />Προσθήκη έτοιμων προτύπων</button></div>
+          <div className="template-grid">{basicTemplates.map((template) => <button type="button" key={template.id} className={selectedTemplateId === template.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedTemplateId(template.id); setSelectedProductId(""); setTemplatePrice(template.price); }}><strong>{template.title}</strong><span>{template.description}</span><small>ΦΠΑ {template.vatRate}%</small></button>)}</div>
+          <label className="wide">Ιστοσελίδες και ψηφιακές υπηρεσίες<select value={webTemplates.some((template) => template.id === selectedTemplateId) ? selectedTemplateId : ""} onChange={(event) => { const template = webTemplates.find((item) => item.id === event.target.value); if (template) { setSelectedTemplateId(template.id); setSelectedProductId(""); setTemplatePrice(template.price); } }}><option value="">Επιλογή υπηρεσίας ιστοσελίδας</option>{webTemplates.map((template) => <option key={template.id} value={template.id}>{template.title} · {money(template.price)}</option>)}</select></label>
           {products.length > 0 ? <><span className="eyebrow">Τα αποθηκευμένα πρότυπά μου</span><div className="template-grid">{products.map((product) => <button type="button" key={product.id} className={selectedProductId === product.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedProductId(product.id); setSelectedTemplateId(""); setTemplatePrice(Number(product.unitPrice)); }}><strong>{product.name}</strong><span>{product.description || product.code || "Πρότυπο προϊόντος/υπηρεσίας"}</span><small>ΦΠΑ {product.vatRate}%</small></button>)}</div></> : null}
           <div className="template-actions"><label>Πελάτης<select value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)}><option value="">Επιλογή πελάτη</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label><label>Σειρά<select value={selectedSeriesId} onChange={(event) => setSelectedSeriesId(event.target.value)}><option value="">Επιλογή σειράς</option>{series.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.documentType}</option>)}</select></label><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedOrganizationId || !selectedCustomerId || !selectedSeriesId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε")}><FilePlus2 size={18} />Δημιουργία draft</button></div>
         </section>
@@ -425,13 +478,20 @@ export default function Home() {
             </form>
           </Panel>
 
+          <Panel title="Κατάλογος ειδών" icon={<Package size={19} />} id="products">
+            <form className="form-grid" onSubmit={(event) => runAction(() => createFamily(event), "Η οικογένεια αποθηκεύτηκε")}><label className="wide">Νέα οικογένεια<input name="name" placeholder="π.χ. Υπηρεσίες ιστοσελίδας" required /></label><button disabled={busy || !selectedOrganizationId || !wrappAdminKey}>Προσθήκη οικογένειας</button></form>
+            <form className="form-grid" onSubmit={(event) => runAction(() => createCategory(event), "Η κατηγορία αποθηκεύτηκε")}><label>Οικογένεια<select name="familyId" required defaultValue="">{<option value="" disabled>Επιλογή οικογένειας</option>}{catalog.map((family) => <option key={family.id} value={family.id}>{family.name}</option>)}</select></label><label>Νέα κατηγορία<input name="name" placeholder="π.χ. Κατασκευή" required /></label><button disabled={busy || !selectedOrganizationId || !wrappAdminKey}>Προσθήκη κατηγορίας</button></form>
+            {catalog.map((family) => <div className="lookup valid" key={family.id}><strong>{family.name}</strong>{family.categories.map((category) => <div key={category.id}><p>{category.name}</p>{category.products.map((product) => <div key={product.id}><span>{product.name} · {money(product.unitPrice)}</span>{product.trackSerialNumbers ? <form className="form-grid" onSubmit={(event) => runAction(() => addSerial(event), "Ο σειριακός αριθμός αποθηκεύτηκε")}><input type="hidden" name="productId" value={product.id} /><label>Serial<input name="serialNumber" required /></label><label>Σημείωση<input name="notes" /></label><button disabled={busy || !wrappAdminKey}>Προσθήκη serial</button>{product.serials.map((serial) => <small key={serial.id}>{serial.serialNumber} · {serial.status}</small>)}</form> : null}</div>)}</div>)}</div>)}
+          </Panel>
           <Panel title="Προϊόν ή υπηρεσία" icon={<Package size={19} />} id="products">
             <form className="form-grid" onSubmit={(event) => runAction(() => createProduct(event), "Το προϊόν αποθηκεύτηκε")}>
-              <label>Κωδικός<input name="code" defaultValue={`SERV-${String(products.length + 1).padStart(3, "0")}`} /></label>
-              <label>Επωνυμία<input name="name" defaultValue="ERP consulting service" required /></label>
+              <label>Κωδικός<input name="code" defaultValue={`ITEM-${String(products.length + 1).padStart(3, "0")}`} /></label>
+              <label>Ονομασία<input name="name" defaultValue="Νέο είδος" required /></label>
+              <label>Κατηγορία<select name="categoryId" value={selectedCategoryId} onChange={(event) => setSelectedCategoryId(event.target.value)}><option value="">Χωρίς κατηγορία</option>{catalog.flatMap((family) => family.categories.map((category) => <option key={category.id} value={category.id}>{family.name} · {category.name}</option>))}</select></label>
               <label>Τιμή μονάδας<input name="unitPrice" type="number" min="0" step="0.01" defaultValue="100" required /></label>
               <label>ΦΠΑ %<input name="vatRate" type="number" min="0" step="0.01" defaultValue="24" required /></label>
-              <button className="wide" disabled={busy || !selectedOrganizationId}>Αποθήκευση προϊόντος</button>
+              <label><input name="trackSerialNumbers" type="checkbox" /> Παρακολούθηση σειριακών αριθμών</label>
+              <button className="wide" disabled={busy || !selectedOrganizationId || !wrappAdminKey}>Αποθήκευση προϊόντος</button>
             </form>
           </Panel>
 
