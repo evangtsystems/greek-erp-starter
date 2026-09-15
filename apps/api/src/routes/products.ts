@@ -3,6 +3,11 @@ import { z } from "zod";
 import { prisma } from "../../../../packages/database/src/client.js";
 
 export const productRouter = Router();
+productRouter.use((req, res, next) => {
+  const key = process.env.ERP_ADMIN_API_KEY;
+  if (!key || req.header("X-ERP-ADMIN-KEY") !== key) return res.status(401).json({ error: "Admin authentication required" });
+  next();
+});
 
 const organizationQuerySchema = z.object({
   organizationId: z.string().uuid()
