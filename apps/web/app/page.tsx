@@ -83,7 +83,7 @@ export default function Home() {
   const [series, setSeries] = useState<InvoiceSeries[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [providerCredentials, setProviderCredentials] = useState<ProviderCredential[]>([]);
-  const [message, setMessage] = useState("Ready");
+  const [message, setMessage] = useState("Έτοιμο");
   const [busy, setBusy] = useState(false);
   const [vatLookup, setVatLookup] = useState<VatLookup | null>(null);
   const [customerName, setCustomerName] = useState("Acme Greek Customer");
@@ -132,12 +132,12 @@ export default function Home() {
 
   const runAction = async (action: () => Promise<void>, success: string) => {
     setBusy(true);
-    setMessage("Working...");
+    setMessage("Επεξεργασία...");
     try {
       await action();
       setMessage(success);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Something went wrong");
+      setMessage(error instanceof Error ? error.message : "Παρουσιάστηκε σφάλμα");
     } finally {
       setBusy(false);
     }
@@ -265,7 +265,7 @@ export default function Home() {
     const customer = customers[0];
     const template = invoiceTemplates.find((item) => item.id === selectedTemplateId);
     const firstSeries = series[0];
-    if (!customer || !template || !firstSeries) throw new Error("Create a customer and an invoice series first");
+    if (!customer || !template || !firstSeries) throw new Error("Δημιούργησε πρώτα πελάτη και σειρά παραστατικών");
 
     await api<Invoice>("/invoices", {
       method: "POST",
@@ -281,7 +281,7 @@ export default function Home() {
   };
 
   const issueWrappStaging = async (invoiceId: string) => {
-    if (!wrappAdminKey) throw new Error("Enter the staging admin key first");
+    if (!wrappAdminKey) throw new Error("Συμπλήρωσε πρώτα το staging admin key");
     await api(`/invoices/${invoiceId}/issue-wrapp-staging`, {
       method: "POST",
       headers: { "X-ERP-ADMIN-KEY": wrappAdminKey },
@@ -306,38 +306,38 @@ export default function Home() {
             <Landmark size={23} />
           </div>
           <div>
-            <strong>Greek ERP</strong>
-            <span>Invoicing SaaS</span>
+            <strong>Ελληνικό ERP</strong>
+            <span>Τιμολόγηση</span>
           </div>
         </div>
         <nav>
-          <a href="#overview"><ReceiptText size={18} />Overview</a>
-          <a href="#customers"><Users size={18} />Customers</a>
-          <a href="#products"><Package size={18} />Products</a>
-          <a href="#invoices"><FileText size={18} />Invoices</a>
+          <a href="#overview"><ReceiptText size={18} />Επισκόπηση</a>
+          <a href="#customers"><Users size={18} />Πελάτες</a>
+          <a href="#products"><Package size={18} />Προϊόντα</a>
+          <a href="#invoices"><FileText size={18} />Παραστατικά</a>
         </nav>
         <div className="sidebar-note">
-          <span>myDATA path</span>
-          <strong>ERP - Provider - AADE</strong>
+          <span>Ροή myDATA</span>
+          <strong>ERP - Πάροχος - ΑΑΔΕ</strong>
         </div>
       </aside>
 
       <section className="content">
         <header className="hero" id="overview">
           <div>
-            <span className="eyebrow">Multi-tenant workspace</span>
-            <h1>{selectedOrganization?.name || "Greek ERP Starter"}</h1>
-            <p>Issue flow, provider readiness, invoice numbering, and audit-safe transmission state.</p>
+            <span className="eyebrow">Χώρος εργασίας</span>
+            <h1>{selectedOrganization?.name || "Ελληνικό ERP"}</h1>
+            <p>Έκδοση παραστατικών, αρίθμηση και ασφαλής διαβίβαση.</p>
             <div className="hero-insights">
-              <div><ShieldCheck size={18} /><span>Provider ready layer</span></div>
-              <div><Clock3 size={18} /><span>Async-ready queue</span></div>
+              <div><ShieldCheck size={18} /><span>Σύνδεση παρόχου</span></div>
+              <div><Clock3 size={18} /><span>Ασφαλής αποστολή</span></div>
               <div><TrendingUp size={18} /><span>{money(totalIssued)} issued</span></div>
             </div>
           </div>
           <div className="tenant-card">
-            <span>Active tenant</span>
+            <span>Ενεργή επιχείρηση</span>
             <select value={selectedOrganizationId} onChange={(event) => setSelectedOrganizationId(event.target.value)}>
-              <option value="">Select organization</option>
+              <option value="">Επιλογή επιχείρησης</option>
               {organizations.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}
             </select>
             <div className="system-state"><CheckCircle2 size={17} />{message}</div>
@@ -355,90 +355,90 @@ export default function Home() {
         <section className="template-panel">
           <div><span className="eyebrow">Γρήγορη έκδοση</span><h2>Τι θέλεις να τιμολογήσεις;</h2><p>Διάλεξε πρότυπο. Οι φορολογικές προεπιλογές συμπληρώνονται αυτόματα.</p></div>
           <div className="template-grid">{invoiceTemplates.map((template) => <button type="button" key={template.id} className={selectedTemplateId === template.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedTemplateId(template.id); setTemplatePrice(template.price); }}><strong>{template.title}</strong><span>{template.description}</span><small>ΦΠΑ {template.vatRate}%</small></button>)}</div>
-          <div className="template-actions"><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Draft invoice created")}><FilePlus2 size={18} />Δημιουργία draft</button></div>
+          <div className="template-actions"><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε")}><FilePlus2 size={18} />Δημιουργία draft</button></div>
         </section>
 
         <section className="command-strip">
-          <button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Draft invoice created")}>
-            <FilePlus2 size={18} />New Draft
+          <button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε")}>
+            <FilePlus2 size={18} />Νέο πρόχειρο
           </button>
-          <button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(() => loadTenantData(selectedOrganizationId), "Data refreshed")}>
-            <RefreshCw size={18} />Refresh
+          <button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(() => loadTenantData(selectedOrganizationId), "Τα δεδομένα ανανεώθηκαν")}>
+            <RefreshCw size={18} />Ανανέωση
           </button>
         </section>
 
         <section className="board">
-          <Panel title="Organization" icon={<Building2 size={19} />}>
-            <form className="form-grid" onSubmit={(event) => runAction(() => createOrganization(event), "Organization saved")}>
-              <label className="wide">Name<input name="name" defaultValue="My First ERP Company" required /></label>
-              <label>VAT number<input name="vatNumber" defaultValue="099999999" /></label>
-              <label>Tax office<input name="taxOffice" defaultValue="DOY ATHINON" /></label>
-              <label>Address<input name="address" defaultValue="Sarantaporou 7" /></label>
-              <label>City<input name="city" defaultValue="Korydallos" /></label>
-              <label>Postal code<input name="postalCode" defaultValue="18100" /></label>
-              <label>Country<input name="country" defaultValue="GR" required /></label>
-              <button disabled={busy}>Save</button>
+          <Panel title="Επιχείρηση" icon={<Building2 size={19} />}>
+            <form className="form-grid" onSubmit={(event) => runAction(() => createOrganization(event), "Η επιχείρηση αποθηκεύτηκε")}>
+              <label className="wide">Επωνυμία<input name="name" defaultValue="My First ERP Company" required /></label>
+              <label>ΑΦΜ<input name="vatNumber" defaultValue="099999999" /></label>
+              <label>ΔΟΥ<input name="taxOffice" defaultValue="DOY ATHINON" /></label>
+              <label>Διεύθυνση<input name="address" defaultValue="Sarantaporou 7" /></label>
+              <label>Πόλη<input name="city" defaultValue="Korydallos" /></label>
+              <label>Τ.Κ.<input name="postalCode" defaultValue="18100" /></label>
+              <label>Χώρα<input name="country" defaultValue="GR" required /></label>
+              <button disabled={busy}>Αποθήκευση</button>
             </form>
           </Panel>
 
-          <Panel title="Customer" icon={<Users size={19} />} id="customers">
-            <form className="form-grid" onSubmit={(event) => runAction(() => createCustomer(event), "Customer saved")}>
-              <label>VAT number<input value={customerVat} onChange={(event) => setCustomerVat(event.target.value)} /></label>
-              <button type="button" className="secondary" disabled={busy || !customerVat} onClick={() => runAction(lookupVat, "VAT lookup complete")}>
-                <Search size={17} />Lookup
+          <Panel title="Πελάτης" icon={<Users size={19} />} id="customers">
+            <form className="form-grid" onSubmit={(event) => runAction(() => createCustomer(event), "Ο πελάτης αποθηκεύτηκε")}>
+              <label>ΑΦΜ<input value={customerVat} onChange={(event) => setCustomerVat(event.target.value)} /></label>
+              <button type="button" className="secondary" disabled={busy || !customerVat} onClick={() => runAction(lookupVat, "Ο έλεγχος ΑΦΜ ολοκληρώθηκε")}>
+                <Search size={17} />Έλεγχος
               </button>
-              <label className="wide">Name<input value={customerName} onChange={(event) => setCustomerName(event.target.value)} required /></label>
+              <label className="wide">Επωνυμία<input value={customerName} onChange={(event) => setCustomerName(event.target.value)} required /></label>
               {vatLookup ? (
                 <div className={`lookup ${vatLookup.valid ? "valid" : "invalid"}`}>
                   {vatLookup.source}: {vatLookup.valid ? "valid VAT" : "not valid for VIES"}{vatLookup.address ? ` · ${vatLookup.address}` : ""}
                 </div>
               ) : null}
-              <button className="wide" disabled={busy || !selectedOrganizationId}>Save Customer</button>
+              <button className="wide" disabled={busy || !selectedOrganizationId}>Αποθήκευση πελάτη</button>
             </form>
           </Panel>
 
-          <Panel title="Product or Service" icon={<Package size={19} />} id="products">
-            <form className="form-grid" onSubmit={(event) => runAction(() => createProduct(event), "Product saved")}>
-              <label>Code<input name="code" defaultValue={`SERV-${String(products.length + 1).padStart(3, "0")}`} /></label>
-              <label>Name<input name="name" defaultValue="ERP consulting service" required /></label>
-              <label>Unit price<input name="unitPrice" type="number" min="0" step="0.01" defaultValue="100" required /></label>
-              <label>VAT %<input name="vatRate" type="number" min="0" step="0.01" defaultValue="24" required /></label>
-              <button className="wide" disabled={busy || !selectedOrganizationId}>Save Product</button>
+          <Panel title="Προϊόν ή υπηρεσία" icon={<Package size={19} />} id="products">
+            <form className="form-grid" onSubmit={(event) => runAction(() => createProduct(event), "Το προϊόν αποθηκεύτηκε")}>
+              <label>Κωδικός<input name="code" defaultValue={`SERV-${String(products.length + 1).padStart(3, "0")}`} /></label>
+              <label>Επωνυμία<input name="name" defaultValue="ERP consulting service" required /></label>
+              <label>Τιμή μονάδας<input name="unitPrice" type="number" min="0" step="0.01" defaultValue="100" required /></label>
+              <label>ΦΠΑ %<input name="vatRate" type="number" min="0" step="0.01" defaultValue="24" required /></label>
+              <button className="wide" disabled={busy || !selectedOrganizationId}>Αποθήκευση προϊόντος</button>
             </form>
           </Panel>
 
-          <Panel title="Invoice Series" icon={<ReceiptText size={19} />}>
-            <form className="form-grid" onSubmit={(event) => runAction(() => createSeries(event), "Series saved")}>
-              <label>Code<input name="code" defaultValue={series.length ? `A${series.length + 1}` : "TP"} required /></label>
+          <Panel title="Σειρά παραστατικών" icon={<ReceiptText size={19} />}>
+            <form className="form-grid" onSubmit={(event) => runAction(() => createSeries(event), "Η σειρά αποθηκεύτηκε")}>
+              <label>Κωδικός<input name="code" defaultValue={series.length ? `A${series.length + 1}` : "TP"} required /></label>
               <label>Document type<input name="documentType" defaultValue="1.1" required /></label>
               <label>Wrapp billing book ID<input name="providerBillingBookId" placeholder="UUID from Wrapp" /></label>
-              <label>Next number<input name="nextNumber" type="number" min="1" defaultValue="1" required /></label>
-              <button className="wide" disabled={busy || !selectedOrganizationId}>Save Series</button>
+              <label>Επόμενος αριθμός<input name="nextNumber" type="number" min="1" defaultValue="1" required /></label>
+              <button className="wide" disabled={busy || !selectedOrganizationId}>Αποθήκευση σειράς</button>
             </form>
           </Panel>
 
-          <Panel title="Provider" icon={<PlugZap size={19} />}>
-            <form className="form-grid" onSubmit={(event) => runAction(() => saveProviderCredential(event), "Provider saved")}>
-              <label>Provider<input name="provider" defaultValue="sandbox-yphahes" required /></label>
-              <label>Environment<select name="environment" defaultValue="SANDBOX"><option>SANDBOX</option><option>PRODUCTION</option></select></label>
+          <Panel title="Πάροχος" icon={<PlugZap size={19} />}>
+            <form className="form-grid" onSubmit={(event) => runAction(() => saveProviderCredential(event), "Ο πάροχος αποθηκεύτηκε")}>
+              <label>Πάροχος<input name="provider" defaultValue="sandbox-yphahes" required /></label>
+              <label>Περιβάλλον<select name="environment" defaultValue="SANDBOX"><option>SANDBOX</option><option>PRODUCTION</option></select></label>
               <label className="wide">API key<input name="apiKey" defaultValue="sandbox-placeholder" /></label>
-              <button className="wide" disabled={busy || !selectedOrganizationId}>Save Provider</button>
+              <button className="wide" disabled={busy || !selectedOrganizationId}>Αποθήκευση παρόχου</button>
             </form>
           </Panel>
         </section>
 
-        <section className="command-strip"><label>Wrapp staging admin key<input type="password" value={wrappAdminKey} onChange={(event) => setWrappAdminKey(event.target.value)} placeholder="Required only to issue" /></label></section>
+        <section className="command-strip"><label>Κλειδί διαχειριστή Wrapp staging<input type="password" value={wrappAdminKey} onChange={(event) => setWrappAdminKey(event.target.value)} placeholder="Required only to issue" /></label></section>
 
         <section className="invoice-section" id="invoices">
           <div className="section-title">
             <div>
-              <span className="eyebrow">Operational register</span>
-              <h2>Invoices</h2>
+              <span className="eyebrow">Μητρώο παραστατικών</span>
+              <h2>Παραστατικά</h2>
             </div>
             <div className="register-total">{invoices.length} records</div>
           </div>
           <div className="invoice-list">
-            {invoices.length === 0 ? <div className="empty">No invoices yet.</div> : invoices.map((invoice) => (
+            {invoices.length === 0 ? <div className="empty">Δεν υπάρχουν παραστατικά.</div> : invoices.map((invoice) => (
               <article className="invoice-card" key={invoice.id}>
                 <div>
                   <strong>{invoice.series.code}{invoice.invoiceNumber ? `-${invoice.invoiceNumber}` : " draft"}</strong>
@@ -454,15 +454,15 @@ export default function Home() {
                   {invoice.status === "DRAFT" || invoice.status === "READY" ? (
                     <>
                       <button className="secondary" disabled={busy} onClick={() => runAction(() => checkReadiness(invoice.id), "Readiness checked")}>
-                        <CheckCircle2 size={17} />Check
+                        <CheckCircle2 size={17} />Έλεγχος
                       </button>
                       <button disabled={busy} onClick={() => runAction(() => queueProviderIssue(invoice.id), "Provider transmission queued")}>
-                        <PlugZap size={17} />Provider
+                        <PlugZap size={17} />Πάροχος
                       </button>
-                      <button disabled={busy || !wrappAdminKey} onClick={() => runAction(() => issueWrappStaging(invoice.id), "Invoice issued via Wrapp staging")}>
+                      <button disabled={busy || !wrappAdminKey} onClick={() => runAction(() => issueWrappStaging(invoice.id), "Το παραστατικό εκδόθηκε μέσω Wrapp staging")}>
                         <Send size={17} />Wrapp staging
                       </button>
-                      <button className="secondary" disabled={busy} onClick={() => runAction(() => issueInvoice(invoice.id), "Invoice issued locally")}>
+                      <button className="secondary" disabled={busy} onClick={() => runAction(() => issueInvoice(invoice.id), "Το παραστατικό εκδόθηκε τοπικά")}>
                         Local
                       </button>
                     </>
