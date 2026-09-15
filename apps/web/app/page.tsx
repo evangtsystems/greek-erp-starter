@@ -2,7 +2,7 @@
 
 import {
   Building2,
-  ΈλεγχοςCircle2,
+  CheckCircle2,
   Clock3,
   FilePlus2,
   FileText,
@@ -10,10 +10,10 @@ import {
   Package,
   PlugZap,
   ReceiptText,
-  ΑνανέωσηCw,
+  RefreshCw,
   Search,
   Send,
-  ShieldΈλεγχος,
+  ShieldCheck,
   TrendingUp,
   Users
 } from "lucide-react";
@@ -329,7 +329,7 @@ export default function Home() {
             <h1>{selectedΕπιχείρηση?.name || "Ελληνικό ERP Starter"}</h1>
             <p>Έκδοση παραστατικών, αρίθμηση και ασφαλής διαβίβαση.</p>
             <div classΕπωνυμία="hero-insights">
-              <div><ShieldΈλεγχος size={18} /><span>Σύνδεση παρόχου</span></div>
+              <div><ShieldCheck size={18} /><span>Σύνδεση παρόχου</span></div>
               <div><Clock3 size={18} /><span>Ασφαλής αποστολή</span></div>
               <div><TrendingUp size={18} /><span>{money(totalIssued)} εκδομένα</span></div>
             </div>
@@ -340,16 +340,16 @@ export default function Home() {
               <option value="">Επιλογή επιχείρησης</option>
               {organizations.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}
             </select>
-            <div classΕπωνυμία="system-state"><ΈλεγχοςCircle2 size={17} />{message}</div>
+            <div classΕπωνυμία="system-state"><CheckCircle2 size={17} />{message}</div>
           </div>
         </header>
 
         <section classΕπωνυμία="metrics">
           <Metric icon={<Users />} label="Πελάτες" value={customers.length} />
           <Metric icon={<Package />} label="Προϊόντα" value={products.length} />
-          <Metric icon={<FileText />} label="Drafts" value={draftΠαραστατικά.length} />
+          <Metric icon={<FileText />} label="Drafts" value={πρόχειροΠαραστατικά.length} />
           <Metric icon={<ReceiptText />} label="Issued total" value={money(totalIssued)} />
-          <Metric icon={<PlugZap />} label="Πάροχοςs" value={providerCredentials.length} />
+          <Metric icon={<PlugZap />} label="Πάροχοι" value={providerCredentials.length} />
         </section>
 
         <section classΕπωνυμία="template-panel">
@@ -363,7 +363,7 @@ export default function Home() {
             <FilePlus2 size={18} />Νέο πρόχειρο
           </button>
           <button classΕπωνυμία="secondary" disabled={busy || !selectedΕπιχείρησηId} onClick={() => runAction(() => loadTenantData(selectedΕπιχείρησηId), "Τα δεδομένα ανανεώθηκαν")}>
-            <ΑνανέωσηCw size={18} />Ανανέωση
+            <RefreshCw size={18} />Ανανέωση
           </button>
         </section>
 
@@ -454,7 +454,7 @@ export default function Home() {
                   {invoice.status === "DRAFT" || invoice.status === "READY" ? (
                     <>
                       <button classΕπωνυμία="secondary" disabled={busy} onClick={() => runAction(() => checkReadiness(invoice.id), "Readiness checked")}>
-                        <ΈλεγχοςCircle2 size={17} />Έλεγχος
+                        <CheckCircle2 size={17} />Έλεγχος
                       </button>
                       <button disabled={busy} onClick={() => runAction(() => queueΠάροχοςIssue(invoice.id), "Η αποστολή προς πάροχο μπήκε σε αναμονή")}>
                         <PlugZap size={17} />Πάροχος
