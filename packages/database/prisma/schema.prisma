@@ -134,6 +134,7 @@ model Product {
   unitPrice      Decimal  @db.Decimal(15, 4) @map("unit_price")
   vatRate        Decimal  @db.Decimal(5, 2) @map("vat_rate")
   active         Boolean  @default(true)
+  providerBillingBookId String? @map("provider_billing_book_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
