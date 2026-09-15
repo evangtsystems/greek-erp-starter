@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-type Επιχείρηση = { id: string; name: string; country: string };
+type Organization = { id: string; name: string; country: string };
 type Customer = { id: string; name: string; vatNumber: string | null };
 type Product = { id: string; code: string | null; name: string; unitPrice: string; vatRate: string };
 type InvoiceSeries = { id: string; code: string; documentType: string; nextNumber: number; providerBillingBookId?: string | null };
@@ -38,7 +38,7 @@ type Invoice = {
   customer: Customer | null;
   series: InvoiceSeries;
 };
-type ΠάροχοςCredential = {
+type ProviderCredential = {
   id: string;
   provider: string;
   environment: string;
@@ -53,12 +53,12 @@ const invoiceTemplates: InvoiceTemplate[] = [
   { id: "consulting", title: "Συμβουλευτική", description: "Υπηρεσίες συμβουλευτικής", price: 120, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" }
 ];
 
-type VatΈλεγχος = {
+type VatLookup = {
   source: string;
   valid: boolean;
   name: string | null;
   address: string | null;
-  countryΚωδικός: string;
+  countryCode: string;
   vatNumber: string;
 };
 
@@ -76,34 +76,34 @@ const money = (value: string | number) =>
   new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(Number(value));
 
 export default function Home() {
-  const [organizations, setΕπιχείρησηs] = useState<Επιχείρηση[]>([]);
-  const [selectedΕπιχείρησηId, setSelectedΕπιχείρησηId] = useState("");
-  const [customers, setΠελάτες] = useState<Customer[]>([]);
-  const [products, setΠροϊόντα] = useState<Product[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [series, setSeries] = useState<InvoiceSeries[]>([]);
-  const [invoices, setΠαραστατικά] = useState<Invoice[]>([]);
-  const [providerCredentials, setΠάροχοςCredentials] = useState<ΠάροχοςCredential[]>([]);
-  const [message, setMessage] = useState("Έτοιμο");
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [providerCredentials, setProviderCredentials] = useState<ProviderCredential[]>([]);
+  const [message, setMessage] = useState("Ready");
   const [busy, setBusy] = useState(false);
-  const [vatΈλεγχος, setVatΈλεγχος] = useState<VatΈλεγχος | null>(null);
-  const [customerΕπωνυμία, setCustomerΕπωνυμία] = useState("Acme Greek Customer");
+  const [vatLookup, setVatLookup] = useState<VatLookup | null>(null);
+  const [customerName, setCustomerName] = useState("Acme Greek Customer");
   const [customerVat, setCustomerVat] = useState("099999999");
   const [wrappAdminKey, setWrappAdminKey] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("service");
   const [templatePrice, setTemplatePrice] = useState(100);
 
-  const selectedΕπιχείρηση = useMemo(
-    () => organizations.find((org) => org.id === selectedΕπιχείρησηId),
-    [organizations, selectedΕπιχείρησηId]
+  const selectedOrganization = useMemo(
+    () => organizations.find((org) => org.id === selectedOrganizationId),
+    [organizations, selectedOrganizationId]
   );
-  const εκδομέναΠαραστατικά = invoices.filter((invoice) => invoice.status === "ISSUED");
-  const πρόχειροΠαραστατικά = invoices.filter((invoice) => invoice.status === "DRAFT" || invoice.status === "READY");
-  const totalIssued = εκδομέναΠαραστατικά.reduce((sum, invoice) => sum + Number(invoice.totalAmount), 0);
+  const issuedInvoices = invoices.filter((invoice) => invoice.status === "ISSUED");
+  const draftInvoices = invoices.filter((invoice) => invoice.status === "DRAFT" || invoice.status === "READY");
+  const totalIssued = issuedInvoices.reduce((sum, invoice) => sum + Number(invoice.totalAmount), 0);
 
-  const loadΕπιχείρησηs = async () => {
-    const data = await api<Επιχείρηση[]>("/organizations");
-    setΕπιχείρησηs(data);
-    setSelectedΕπιχείρησηId((current) => current || data[0]?.id || "");
+  const loadOrganizations = async () => {
+    const data = await api<Organization[]>("/organizations");
+    setOrganizations(data);
+    setSelectedOrganizationId((current) => current || data[0]?.id || "");
   };
 
   const loadTenantData = async (organizationId: string) => {
@@ -113,40 +113,40 @@ export default function Home() {
       api<Product[]>(`/products?organizationId=${organizationId}`),
       api<InvoiceSeries[]>(`/invoice-series?organizationId=${organizationId}`),
       api<Invoice[]>(`/invoices?organizationId=${organizationId}`),
-      api<ΠάροχοςCredential[]>(`/provider-credentials?organizationId=${organizationId}`)
+      api<ProviderCredential[]>(`/provider-credentials?organizationId=${organizationId}`)
     ]);
-    setΠελάτες(customerData);
-    setΠροϊόντα(productData);
+    setCustomers(customerData);
+    setProducts(productData);
     setSeries(seriesData);
-    setΠαραστατικά(invoiceData);
-    setΠάροχοςCredentials(providerData);
+    setInvoices(invoiceData);
+    setProviderCredentials(providerData);
   };
 
   useEffect(() => {
-    loadΕπιχείρησηs().catch((error) => setMessage(error.message));
+    loadOrganizations().catch((error) => setMessage(error.message));
   }, []);
 
   useEffect(() => {
-    loadTenantData(selectedΕπιχείρησηId).catch((error) => setMessage(error.message));
-  }, [selectedΕπιχείρησηId]);
+    loadTenantData(selectedOrganizationId).catch((error) => setMessage(error.message));
+  }, [selectedOrganizationId]);
 
   const runAction = async (action: () => Promise<void>, success: string) => {
     setBusy(true);
-    setMessage("Επεξεργασία...");
+    setMessage("Working...");
     try {
       await action();
       setMessage(success);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Παρουσιάστηκε σφάλμα");
+      setMessage(error instanceof Error ? error.message : "Something went wrong");
     } finally {
       setBusy(false);
     }
   };
 
-  const createΕπιχείρηση = async (event: FormEvent<HTMLFormElement>) => {
+  const createOrganization = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const organization = await api<Επιχείρηση>("/organizations", {
+    const organization = await api<Organization>("/organizations", {
       method: "POST",
       body: JSON.stringify({
         name: form.get("name"),
@@ -154,22 +154,22 @@ export default function Home() {
         taxOffice: form.get("taxOffice") || null,
         address: form.get("address") || null,
         city: form.get("city") || null,
-        postalΚωδικός: form.get("postalΚωδικός") || null,
+        postalCode: form.get("postalCode") || null,
         country: form.get("country")
       })
     });
     event.currentTarget.reset();
-    await loadΕπιχείρησηs();
-    setSelectedΕπιχείρησηId(organization.id);
+    await loadOrganizations();
+    setSelectedOrganizationId(organization.id);
   };
 
   const lookupVat = async () => {
-    const result = await api<VatΈλεγχος>("/vat/lookup", {
+    const result = await api<VatLookup>("/vat/lookup", {
       method: "POST",
-      body: JSON.stringify({ countryΚωδικός: "EL", vatNumber: customerVat })
+      body: JSON.stringify({ countryCode: "EL", vatNumber: customerVat })
     });
-    setVatΈλεγχος(result);
-    if (result.name) setCustomerΕπωνυμία(result.name);
+    setVatLookup(result);
+    if (result.name) setCustomerName(result.name);
   };
 
   const createCustomer = async (event: FormEvent<HTMLFormElement>) => {
@@ -177,14 +177,14 @@ export default function Home() {
     await api<Customer>("/customers", {
       method: "POST",
       body: JSON.stringify({
-        organizationId: selectedΕπιχείρησηId,
+        organizationId: selectedOrganizationId,
         type: "BUSINESS",
-        name: customerΕπωνυμία,
+        name: customerName,
         vatNumber: customerVat || null,
         country: "GR"
       })
     });
-    await loadTenantData(selectedΕπιχείρησηId);
+    await loadTenantData(selectedOrganizationId);
   };
 
   const createProduct = async (event: FormEvent<HTMLFormElement>) => {
@@ -193,7 +193,7 @@ export default function Home() {
     await api<Product>("/products", {
       method: "POST",
       body: JSON.stringify({
-        organizationId: selectedΕπιχείρησηId,
+        organizationId: selectedOrganizationId,
         code: form.get("code") || null,
         name: form.get("name"),
         unit: "hour",
@@ -201,7 +201,7 @@ export default function Home() {
         vatRate: Number(form.get("vatRate"))
       })
     });
-    await loadTenantData(selectedΕπιχείρησηId);
+    await loadTenantData(selectedOrganizationId);
   };
 
   const createSeries = async (event: FormEvent<HTMLFormElement>) => {
@@ -210,23 +210,23 @@ export default function Home() {
     await api<InvoiceSeries>("/invoice-series", {
       method: "POST",
       body: JSON.stringify({
-        organizationId: selectedΕπιχείρησηId,
+        organizationId: selectedOrganizationId,
         code: form.get("code"),
         documentType: form.get("documentType"),
         nextNumber: Number(form.get("nextNumber")),
         providerBillingBookId: form.get("providerBillingBookId") || null
       })
     });
-    await loadTenantData(selectedΕπιχείρησηId);
+    await loadTenantData(selectedOrganizationId);
   };
 
-  const saveΠάροχοςCredential = async (event: FormEvent<HTMLFormElement>) => {
+  const saveProviderCredential = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    await api<ΠάροχοςCredential>("/provider-credentials", {
+    await api<ProviderCredential>("/provider-credentials", {
       method: "POST",
       body: JSON.stringify({
-        organizationId: selectedΕπιχείρησηId,
+        organizationId: selectedOrganizationId,
         provider: form.get("provider"),
         environment: form.get("environment"),
         enabled: true,
@@ -234,239 +234,239 @@ export default function Home() {
           apiKey: form.get("apiKey") || "sandbox-placeholder"
         },
         metadata: {
-          displayΕπωνυμία: form.get("provider")
+          displayName: form.get("provider")
         }
       })
     });
-    await loadTenantData(selectedΕπιχείρησηId);
+    await loadTenantData(selectedOrganizationId);
   };
 
   const checkReadiness = async (invoiceId: string) => {
     const result = await api<{ readiness: { ready: boolean; errors: string[]; warnings: string[] } }>(
-      `/invoices/${invoiceId}/readiness?organizationId=${selectedΕπιχείρησηId}`
+      `/invoices/${invoiceId}/readiness?organizationId=${selectedOrganizationId}`
     );
     const errors = result.readiness.errors.length;
     const warnings = result.readiness.warnings.length;
-    setMessage(result.readiness.ready ? `Έτοιμο για πάροχο με ${warnings} προειδοποίηση(εις)` : `Δεν είναι έτοιμο: ${errors} σφάλμα(τα)`);
+    setMessage(result.readiness.ready ? `Provider ready with ${warnings} warning(s)` : `Not ready: ${errors} error(s)`);
   };
 
-  const queueΠάροχοςIssue = async (invoiceId: string) => {
+  const queueProviderIssue = async (invoiceId: string) => {
     await api(`/invoices/${invoiceId}/issue-provider`, {
       method: "POST",
       body: JSON.stringify({
-        organizationId: selectedΕπιχείρησηId,
+        organizationId: selectedOrganizationId,
         provider: providerCredentials[0]?.provider
       })
     });
-    await loadTenantData(selectedΕπιχείρησηId);
+    await loadTenantData(selectedOrganizationId);
   };
 
   const createDraftInvoice = async () => {
     const customer = customers[0];
     const template = invoiceTemplates.find((item) => item.id === selectedTemplateId);
     const firstSeries = series[0];
-    if (!customer || !template || !firstSeries) throw new Error("Δημιούργησε πρώτα πελάτη και σειρά παραστατικών");
+    if (!customer || !template || !firstSeries) throw new Error("Create a customer and an invoice series first");
 
     await api<Invoice>("/invoices", {
       method: "POST",
       body: JSON.stringify({
-        organizationId: selectedΕπιχείρησηId,
+        organizationId: selectedOrganizationId,
         customerId: customer.id,
         seriesId: firstSeries.id,
         documentType: firstSeries.documentType,
         lines: [{ description: template.description, quantity: 1, unitPrice: templatePrice, vatRate: template.vatRate, vatCategory: "VAT_24", classificationType: template.classificationType, classificationCategory: template.classificationCategory }]
       })
     });
-    await loadTenantData(selectedΕπιχείρησηId);
+    await loadTenantData(selectedOrganizationId);
   };
 
   const issueWrappStaging = async (invoiceId: string) => {
-    if (!wrappAdminKey) throw new Error("Συμπλήρωσε πρώτα το staging admin key");
+    if (!wrappAdminKey) throw new Error("Enter the staging admin key first");
     await api(`/invoices/${invoiceId}/issue-wrapp-staging`, {
       method: "POST",
       headers: { "X-ERP-ADMIN-KEY": wrappAdminKey },
-      body: JSON.stringify({ organizationId: selectedΕπιχείρησηId })
+      body: JSON.stringify({ organizationId: selectedOrganizationId })
     });
-    await loadTenantData(selectedΕπιχείρησηId);
+    await loadTenantData(selectedOrganizationId);
   };
 
   const issueInvoice = async (invoiceId: string) => {
     await api<Invoice>(`/invoices/${invoiceId}/issue-local`, {
       method: "POST",
-      body: JSON.stringify({ organizationId: selectedΕπιχείρησηId })
+      body: JSON.stringify({ organizationId: selectedOrganizationId })
     });
-    await loadTenantData(selectedΕπιχείρησηId);
+    await loadTenantData(selectedOrganizationId);
   };
 
   return (
-    <main classΕπωνυμία="workspace">
-      <aside classΕπωνυμία="sidebar">
-        <div classΕπωνυμία="brand">
-          <div classΕπωνυμία="brand-mark">
+    <main className="workspace">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark">
             <Landmark size={23} />
           </div>
           <div>
-            <strong>Ελληνικό ERP</strong>
-            <span>Τιμολόγηση</span>
+            <strong>Greek ERP</strong>
+            <span>Invoicing SaaS</span>
           </div>
         </div>
         <nav>
-          <a href="#overview"><ReceiptText size={18} />Επισκόπηση</a>
-          <a href="#customers"><Users size={18} />Πελάτες</a>
-          <a href="#products"><Package size={18} />Προϊόντα</a>
-          <a href="#invoices"><FileText size={18} />Παραστατικά</a>
+          <a href="#overview"><ReceiptText size={18} />Overview</a>
+          <a href="#customers"><Users size={18} />Customers</a>
+          <a href="#products"><Package size={18} />Products</a>
+          <a href="#invoices"><FileText size={18} />Invoices</a>
         </nav>
-        <div classΕπωνυμία="sidebar-note">
-          <span>Ροή myDATA</span>
-          <strong>ERP - Πάροχος - ΑΑΔΕ</strong>
+        <div className="sidebar-note">
+          <span>myDATA path</span>
+          <strong>ERP - Provider - AADE</strong>
         </div>
       </aside>
 
-      <section classΕπωνυμία="content">
-        <header classΕπωνυμία="hero" id="overview">
+      <section className="content">
+        <header className="hero" id="overview">
           <div>
-            <span classΕπωνυμία="eyebrow">Χώρος εργασίας</span>
-            <h1>{selectedΕπιχείρηση?.name || "Ελληνικό ERP Starter"}</h1>
-            <p>Έκδοση παραστατικών, αρίθμηση και ασφαλής διαβίβαση.</p>
-            <div classΕπωνυμία="hero-insights">
-              <div><ShieldCheck size={18} /><span>Σύνδεση παρόχου</span></div>
-              <div><Clock3 size={18} /><span>Ασφαλής αποστολή</span></div>
-              <div><TrendingUp size={18} /><span>{money(totalIssued)} εκδομένα</span></div>
+            <span className="eyebrow">Multi-tenant workspace</span>
+            <h1>{selectedOrganization?.name || "Greek ERP Starter"}</h1>
+            <p>Issue flow, provider readiness, invoice numbering, and audit-safe transmission state.</p>
+            <div className="hero-insights">
+              <div><ShieldCheck size={18} /><span>Provider ready layer</span></div>
+              <div><Clock3 size={18} /><span>Async-ready queue</span></div>
+              <div><TrendingUp size={18} /><span>{money(totalIssued)} issued</span></div>
             </div>
           </div>
-          <div classΕπωνυμία="tenant-card">
-            <span>Ενεργή επιχείρηση</span>
-            <select value={selectedΕπιχείρησηId} onChange={(event) => setSelectedΕπιχείρησηId(event.target.value)}>
-              <option value="">Επιλογή επιχείρησης</option>
+          <div className="tenant-card">
+            <span>Active tenant</span>
+            <select value={selectedOrganizationId} onChange={(event) => setSelectedOrganizationId(event.target.value)}>
+              <option value="">Select organization</option>
               {organizations.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}
             </select>
-            <div classΕπωνυμία="system-state"><CheckCircle2 size={17} />{message}</div>
+            <div className="system-state"><CheckCircle2 size={17} />{message}</div>
           </div>
         </header>
 
-        <section classΕπωνυμία="metrics">
-          <Metric icon={<Users />} label="Πελάτες" value={customers.length} />
-          <Metric icon={<Package />} label="Προϊόντα" value={products.length} />
-          <Metric icon={<FileText />} label="Drafts" value={πρόχειροΠαραστατικά.length} />
+        <section className="metrics">
+          <Metric icon={<Users />} label="Customers" value={customers.length} />
+          <Metric icon={<Package />} label="Products" value={products.length} />
+          <Metric icon={<FileText />} label="Drafts" value={draftInvoices.length} />
           <Metric icon={<ReceiptText />} label="Issued total" value={money(totalIssued)} />
-          <Metric icon={<PlugZap />} label="Πάροχοι" value={providerCredentials.length} />
+          <Metric icon={<PlugZap />} label="Providers" value={providerCredentials.length} />
         </section>
 
-        <section classΕπωνυμία="template-panel">
-          <div><span classΕπωνυμία="eyebrow">Γρήγορη έκδοση</span><h2>Τι θέλεις να τιμολογήσεις;</h2><p>Διάλεξε πρότυπο. Οι φορολογικές προεπιλογές συμπληρώνονται αυτόματα.</p></div>
-          <div classΕπωνυμία="template-grid">{invoiceTemplates.map((template) => <button type="button" key={template.id} classΕπωνυμία={selectedTemplateId === template.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedTemplateId(template.id); setTemplatePrice(template.price); }}><strong>{template.title}</strong><span>{template.description}</span><small>ΦΠΑ {template.vatRate}%</small></button>)}</div>
-          <div classΕπωνυμία="template-actions"><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedΕπιχείρησηId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε")}><FilePlus2 size={18} />Δημιουργία πρόχειρο</button></div>
+        <section className="template-panel">
+          <div><span className="eyebrow">Γρήγορη έκδοση</span><h2>Τι θέλεις να τιμολογήσεις;</h2><p>Διάλεξε πρότυπο. Οι φορολογικές προεπιλογές συμπληρώνονται αυτόματα.</p></div>
+          <div className="template-grid">{invoiceTemplates.map((template) => <button type="button" key={template.id} className={selectedTemplateId === template.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedTemplateId(template.id); setTemplatePrice(template.price); }}><strong>{template.title}</strong><span>{template.description}</span><small>ΦΠΑ {template.vatRate}%</small></button>)}</div>
+          <div className="template-actions"><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Draft invoice created")}><FilePlus2 size={18} />Δημιουργία draft</button></div>
         </section>
 
-        <section classΕπωνυμία="command-strip">
-          <button classΕπωνυμία="secondary" disabled={busy || !selectedΕπιχείρησηId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε")}>
-            <FilePlus2 size={18} />Νέο πρόχειρο
+        <section className="command-strip">
+          <button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Draft invoice created")}>
+            <FilePlus2 size={18} />New Draft
           </button>
-          <button classΕπωνυμία="secondary" disabled={busy || !selectedΕπιχείρησηId} onClick={() => runAction(() => loadTenantData(selectedΕπιχείρησηId), "Τα δεδομένα ανανεώθηκαν")}>
-            <RefreshCw size={18} />Ανανέωση
+          <button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(() => loadTenantData(selectedOrganizationId), "Data refreshed")}>
+            <RefreshCw size={18} />Refresh
           </button>
         </section>
 
-        <section classΕπωνυμία="board">
-          <Panel title="Επιχείρηση" icon={<Building2 size={19} />}>
-            <form classΕπωνυμία="form-grid" onSubmit={(event) => runAction(() => createΕπιχείρηση(event), "Η επιχείρηση αποθηκεύτηκε")}>
-              <label classΕπωνυμία="wide">Επωνυμία<input name="name" defaultValue="My First ERP Company" required /></label>
-              <label>ΑΦΜ<input name="vatNumber" defaultValue="099999999" /></label>
-              <label>ΔΟΥ<input name="taxOffice" defaultValue="DOY ATHINON" /></label>
-              <label>Διεύθυνση<input name="address" defaultValue="Sarantaporou 7" /></label>
-              <label>Πόλη<input name="city" defaultValue="Korydallos" /></label>
-              <label>Τ.Κ.<input name="postalΚωδικός" defaultValue="18100" /></label>
-              <label>Χώρα<input name="country" defaultValue="GR" required /></label>
+        <section className="board">
+          <Panel title="Organization" icon={<Building2 size={19} />}>
+            <form className="form-grid" onSubmit={(event) => runAction(() => createOrganization(event), "Organization saved")}>
+              <label className="wide">Name<input name="name" defaultValue="My First ERP Company" required /></label>
+              <label>VAT number<input name="vatNumber" defaultValue="099999999" /></label>
+              <label>Tax office<input name="taxOffice" defaultValue="DOY ATHINON" /></label>
+              <label>Address<input name="address" defaultValue="Sarantaporou 7" /></label>
+              <label>City<input name="city" defaultValue="Korydallos" /></label>
+              <label>Postal code<input name="postalCode" defaultValue="18100" /></label>
+              <label>Country<input name="country" defaultValue="GR" required /></label>
               <button disabled={busy}>Save</button>
             </form>
           </Panel>
 
           <Panel title="Customer" icon={<Users size={19} />} id="customers">
-            <form classΕπωνυμία="form-grid" onSubmit={(event) => runAction(() => createCustomer(event), "Ο πελάτης αποθηκεύτηκε")}>
-              <label>ΑΦΜ<input value={customerVat} onChange={(event) => setCustomerVat(event.target.value)} /></label>
-              <button type="button" classΕπωνυμία="secondary" disabled={busy || !customerVat} onClick={() => runAction(lookupVat, "Ο έλεγχος ΑΦΜ ολοκληρώθηκε")}>
-                <Search size={17} />Έλεγχος
+            <form className="form-grid" onSubmit={(event) => runAction(() => createCustomer(event), "Customer saved")}>
+              <label>VAT number<input value={customerVat} onChange={(event) => setCustomerVat(event.target.value)} /></label>
+              <button type="button" className="secondary" disabled={busy || !customerVat} onClick={() => runAction(lookupVat, "VAT lookup complete")}>
+                <Search size={17} />Lookup
               </button>
-              <label classΕπωνυμία="wide">Επωνυμία<input value={customerΕπωνυμία} onChange={(event) => setCustomerΕπωνυμία(event.target.value)} required /></label>
-              {vatΈλεγχος ? (
-                <div classΕπωνυμία={`lookup ${vatΈλεγχος.valid ? "valid" : "invalid"}`}>
-                  {vatΈλεγχος.source}: {vatΈλεγχος.valid ? "valid VAT" : "not valid for VIES"}{vatΈλεγχος.address ? ` · ${vatΈλεγχος.address}` : ""}
+              <label className="wide">Name<input value={customerName} onChange={(event) => setCustomerName(event.target.value)} required /></label>
+              {vatLookup ? (
+                <div className={`lookup ${vatLookup.valid ? "valid" : "invalid"}`}>
+                  {vatLookup.source}: {vatLookup.valid ? "valid VAT" : "not valid for VIES"}{vatLookup.address ? ` · ${vatLookup.address}` : ""}
                 </div>
               ) : null}
-              <button classΕπωνυμία="wide" disabled={busy || !selectedΕπιχείρησηId}>Αποθήκευση πελάτη</button>
+              <button className="wide" disabled={busy || !selectedOrganizationId}>Save Customer</button>
             </form>
           </Panel>
 
-          <Panel title="Προϊόν ή υπηρεσία" icon={<Package size={19} />} id="products">
-            <form classΕπωνυμία="form-grid" onSubmit={(event) => runAction(() => createProduct(event), "Το προϊόν αποθηκεύτηκε")}>
-              <label>Κωδικός<input name="code" defaultValue={`SERV-${String(products.length + 1).padStart(3, "0")}`} /></label>
-              <label>Επωνυμία<input name="name" defaultValue="ERP consulting service" required /></label>
-              <label>Τιμή μονάδας<input name="unitPrice" type="number" min="0" step="0.01" defaultValue="100" required /></label>
-              <label>ΦΠΑ %<input name="vatRate" type="number" min="0" step="0.01" defaultValue="24" required /></label>
-              <button classΕπωνυμία="wide" disabled={busy || !selectedΕπιχείρησηId}>Αποθήκευση προϊόντος</button>
+          <Panel title="Product or Service" icon={<Package size={19} />} id="products">
+            <form className="form-grid" onSubmit={(event) => runAction(() => createProduct(event), "Product saved")}>
+              <label>Code<input name="code" defaultValue={`SERV-${String(products.length + 1).padStart(3, "0")}`} /></label>
+              <label>Name<input name="name" defaultValue="ERP consulting service" required /></label>
+              <label>Unit price<input name="unitPrice" type="number" min="0" step="0.01" defaultValue="100" required /></label>
+              <label>VAT %<input name="vatRate" type="number" min="0" step="0.01" defaultValue="24" required /></label>
+              <button className="wide" disabled={busy || !selectedOrganizationId}>Save Product</button>
             </form>
           </Panel>
 
-          <Panel title="Σειρά παραστατικών" icon={<ReceiptText size={19} />}>
-            <form classΕπωνυμία="form-grid" onSubmit={(event) => runAction(() => createSeries(event), "Η σειρά αποθηκεύτηκε")}>
-              <label>Κωδικός<input name="code" defaultValue={series.length ? `A${series.length + 1}` : "TP"} required /></label>
-              <label>Τύπος παραστατικού<input name="documentType" defaultValue="1.1" required /></label>
-              <label>Σειρά Wrapp<input name="providerBillingBookId" placeholder="UUID from Wrapp" /></label>
-              <label>Επόμενος αριθμός<input name="nextNumber" type="number" min="1" defaultValue="1" required /></label>
-              <button classΕπωνυμία="wide" disabled={busy || !selectedΕπιχείρησηId}>Αποθήκευση σειράς</button>
+          <Panel title="Invoice Series" icon={<ReceiptText size={19} />}>
+            <form className="form-grid" onSubmit={(event) => runAction(() => createSeries(event), "Series saved")}>
+              <label>Code<input name="code" defaultValue={series.length ? `A${series.length + 1}` : "TP"} required /></label>
+              <label>Document type<input name="documentType" defaultValue="1.1" required /></label>
+              <label>Wrapp billing book ID<input name="providerBillingBookId" placeholder="UUID from Wrapp" /></label>
+              <label>Next number<input name="nextNumber" type="number" min="1" defaultValue="1" required /></label>
+              <button className="wide" disabled={busy || !selectedOrganizationId}>Save Series</button>
             </form>
           </Panel>
 
-          <Panel title="Πάροχος" icon={<PlugZap size={19} />}>
-            <form classΕπωνυμία="form-grid" onSubmit={(event) => runAction(() => saveΠάροχοςCredential(event), "Ο πάροχος αποθηκεύτηκε")}>
-              <label>Πάροχος<input name="provider" defaultValue="sandbox-yphahes" required /></label>
-              <label>Περιβάλλον<select name="environment" defaultValue="SANDBOX"><option>SANDBOX</option><option>PRODUCTION</option></select></label>
-              <label classΕπωνυμία="wide">API key<input name="apiKey" defaultValue="sandbox-placeholder" /></label>
-              <button classΕπωνυμία="wide" disabled={busy || !selectedΕπιχείρησηId}>Save Πάροχος</button>
+          <Panel title="Provider" icon={<PlugZap size={19} />}>
+            <form className="form-grid" onSubmit={(event) => runAction(() => saveProviderCredential(event), "Provider saved")}>
+              <label>Provider<input name="provider" defaultValue="sandbox-yphahes" required /></label>
+              <label>Environment<select name="environment" defaultValue="SANDBOX"><option>SANDBOX</option><option>PRODUCTION</option></select></label>
+              <label className="wide">API key<input name="apiKey" defaultValue="sandbox-placeholder" /></label>
+              <button className="wide" disabled={busy || !selectedOrganizationId}>Save Provider</button>
             </form>
           </Panel>
         </section>
 
-        <section classΕπωνυμία="command-strip"><label>Κλειδί διαχειριστή Wrapp staging<input type="password" value={wrappAdminKey} onChange={(event) => setWrappAdminKey(event.target.value)} placeholder="Απαιτείται μόνο για έκδοση" /></label></section>
+        <section className="command-strip"><label>Wrapp staging admin key<input type="password" value={wrappAdminKey} onChange={(event) => setWrappAdminKey(event.target.value)} placeholder="Required only to issue" /></label></section>
 
-        <section classΕπωνυμία="invoice-section" id="invoices">
-          <div classΕπωνυμία="section-title">
+        <section className="invoice-section" id="invoices">
+          <div className="section-title">
             <div>
-              <span classΕπωνυμία="eyebrow">Μητρώο παραστατικών</span>
-              <h2>Παραστατικά</h2>
+              <span className="eyebrow">Operational register</span>
+              <h2>Invoices</h2>
             </div>
-            <div classΕπωνυμία="register-total">{invoices.length} εγγραφές</div>
+            <div className="register-total">{invoices.length} records</div>
           </div>
-          <div classΕπωνυμία="invoice-list">
-            {invoices.length === 0 ? <div classΕπωνυμία="empty">Δεν υπάρχουν παραστατικά.</div> : invoices.map((invoice) => (
-              <article classΕπωνυμία="invoice-card" key={invoice.id}>
+          <div className="invoice-list">
+            {invoices.length === 0 ? <div className="empty">No invoices yet.</div> : invoices.map((invoice) => (
+              <article className="invoice-card" key={invoice.id}>
                 <div>
-                  <strong>{invoice.series.code}{invoice.invoiceNumber ? `-${invoice.invoiceNumber}` : " πρόχειρο"}</strong>
-                  <span>{invoice.customer?.name || "Χωρίς πελάτη"} / {invoice.documentType}</span>
+                  <strong>{invoice.series.code}{invoice.invoiceNumber ? `-${invoice.invoiceNumber}` : " draft"}</strong>
+                  <span>{invoice.customer?.name || "No customer"} / {invoice.documentType}</span>
                 </div>
-                <div classΕπωνυμία="amounts">
-                  <span>Καθαρή αξία {money(invoice.netAmount)}</span>
-                  <span>ΦΠΑ {money(invoice.vatAmount)}</span>
+                <div className="amounts">
+                  <span>Net {money(invoice.netAmount)}</span>
+                  <span>VAT {money(invoice.vatAmount)}</span>
                   <strong>{money(invoice.totalAmount)}</strong>
                 </div>
-                <div classΕπωνυμία="invoice-actions">
-                  <span classΕπωνυμία={`pill ${invoice.status.toLowerCase()}`}>{invoice.status}</span>
+                <div className="invoice-actions">
+                  <span className={`pill ${invoice.status.toLowerCase()}`}>{invoice.status}</span>
                   {invoice.status === "DRAFT" || invoice.status === "READY" ? (
                     <>
-                      <button classΕπωνυμία="secondary" disabled={busy} onClick={() => runAction(() => checkReadiness(invoice.id), "Readiness checked")}>
-                        <CheckCircle2 size={17} />Έλεγχος
+                      <button className="secondary" disabled={busy} onClick={() => runAction(() => checkReadiness(invoice.id), "Readiness checked")}>
+                        <CheckCircle2 size={17} />Check
                       </button>
-                      <button disabled={busy} onClick={() => runAction(() => queueΠάροχοςIssue(invoice.id), "Η αποστολή προς πάροχο μπήκε σε αναμονή")}>
-                        <PlugZap size={17} />Πάροχος
+                      <button disabled={busy} onClick={() => runAction(() => queueProviderIssue(invoice.id), "Provider transmission queued")}>
+                        <PlugZap size={17} />Provider
                       </button>
-                      <button disabled={busy || !wrappAdminKey} onClick={() => runAction(() => issueWrappStaging(invoice.id), "Το παραστατικό εκδόθηκε μέσω Wrapp staging")}>
+                      <button disabled={busy || !wrappAdminKey} onClick={() => runAction(() => issueWrappStaging(invoice.id), "Invoice issued via Wrapp staging")}>
                         <Send size={17} />Wrapp staging
                       </button>
-                      <button classΕπωνυμία="secondary" disabled={busy} onClick={() => runAction(() => issueInvoice(invoice.id), "Το παραστατικό εκδόθηκε τοπικά")}>
-                        Τοπική έκδοση
+                      <button className="secondary" disabled={busy} onClick={() => runAction(() => issueInvoice(invoice.id), "Invoice issued locally")}>
+                        Local
                       </button>
                     </>
-                  ) : <span classΕπωνυμία="provider">{invoice.mydataMark ? `MARK ${invoice.mydataMark}` : (invoice.providerStatus || "Πάροχος pending")}</span>}
+                  ) : <span className="provider">{invoice.mydataMark ? `MARK ${invoice.mydataMark}` : (invoice.providerStatus || "Provider pending")}</span>}
                 </div>
               </article>
             ))}
@@ -478,9 +478,9 @@ export default function Home() {
 }
 
 function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
-  return <div classΕπωνυμία="metric"><div>{icon}</div><span>{label}</span><strong>{value}</strong></div>;
+  return <div className="metric"><div>{icon}</div><span>{label}</span><strong>{value}</strong></div>;
 }
 
 function Panel({ children, icon, id, title }: { children: React.ReactNode; icon: React.ReactNode; id?: string; title: string }) {
-  return <section classΕπωνυμία="panel" id={id}><h2>{icon}{title}</h2>{children}</section>;
+  return <section className="panel" id={id}><h2>{icon}{title}</h2>{children}</section>;
 }
