@@ -4,6 +4,7 @@ import { prisma } from "../../../../packages/database/src/client.js";
 
 export const productRouter = Router();
 productRouter.use((req, res, next) => {
+  if (req.method === "GET") return next();
   const key = process.env.ERP_ADMIN_API_KEY;
   if (!key || req.header("X-ERP-ADMIN-KEY") !== key) return res.status(401).json({ error: "Admin authentication required" });
   next();
@@ -23,6 +24,8 @@ const createProductSchema = z.object({
   vatRate: z.coerce.number().min(0),
   classificationType: z.string().min(1).nullable().optional(),
   classificationCategory: z.string().min(1).nullable().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  trackSerialNumbers: z.boolean().default(false),
   active: z.boolean().default(true)
 });
 
@@ -35,6 +38,13 @@ productRouter.post("/", async (req, res) => {
 
   const data = parsed.data;
 
+  if (data.categoryId) {
+    const category = await prisma.productCategory.findFirst({
+      where: { id: data.categoryId, organizationId: data.organizationId }
+    });
+    if (!category) return res.status(422).json({ error: "Η κατηγορία δεν ανήκει στην επιλεγμένη επιχείρηση" });
+  }
+
   const product = await prisma.product.create({
     data: {
       organizationId: data.organizationId,
@@ -46,6 +56,8 @@ productRouter.post("/", async (req, res) => {
       vatRate: data.vatRate,
       classificationType: data.classificationType ?? null,
       classificationCategory: data.classificationCategory ?? null,
+      categoryId: data.categoryId ?? null,
+      trackSerialNumbers: data.trackSerialNumbers,
       active: data.active
     }
   });
