@@ -410,7 +410,7 @@ export default function Home() {
             <div className="hero-insights">
               <div><ShieldCheck size={18} /><span>Σύνδεση παρόχου</span></div>
               <div><Clock3 size={18} /><span>Ασφαλής αποστολή</span></div>
-              <div><TrendingUp size={18} /><span>{money(totalIssued)} issued</span></div>
+              <div><TrendingUp size={18} /><span>{money(totalIssued)} εκδόθηκαν</span></div>
             </div>
           </div>
           <div className="tenant-card">
@@ -424,11 +424,11 @@ export default function Home() {
         </header>
 
         <section className="metrics">
-          <Metric icon={<Users />} label="Customers" value={customers.length} />
-          <Metric icon={<Package />} label="Products" value={products.length} />
-          <Metric icon={<FileText />} label="Drafts" value={draftInvoices.length} />
-          <Metric icon={<ReceiptText />} label="Issued total" value={money(totalIssued)} />
-          <Metric icon={<PlugZap />} label="Providers" value={providerCredentials.length} />
+          <Metric icon={<Users />} label="Πελάτες" value={customers.length} />
+          <Metric icon={<Package />} label="Προϊόντα" value={products.length} />
+          <Metric icon={<FileText />} label="Πρόχειρα" value={draftInvoices.length} />
+          <Metric icon={<ReceiptText />} label="Σύνολο εκδόσεων" value={money(totalIssued)} />
+          <Metric icon={<PlugZap />} label="Πάροχοι" value={providerCredentials.length} />
         </section>
 
         <section className="template-panel">
@@ -515,7 +515,7 @@ export default function Home() {
           </Panel>
         </section>
 
-        <section className="command-strip"><label>Κλειδί διαχειριστή Wrapp staging<input type="password" value={wrappAdminKey} onChange={(event) => setWrappAdminKey(event.target.value)} placeholder="Required only to issue" /></label></section>
+        <section className="command-strip"><label>Κλειδί διαχειριστή ERP<input type="password" value={wrappAdminKey} onChange={(event) => setWrappAdminKey(event.target.value)} placeholder="Απαραίτητο για κατάλογο και έκδοση staging" /></label></section>
 
         <section className="invoice-section" id="invoices">
           <div className="section-title">
