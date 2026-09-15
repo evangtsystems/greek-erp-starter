@@ -190,70 +190,70 @@ megasoftImportRouter.post("/megasoft/execute", async (req, res) => {
     if (!organization) return res.status(404).json({ error: "Η επιχείρηση δεν βρέθηκε." });
 
     const data = await readSource(parsed.data);
-    let customersImported = 0;
-    let productsImported = 0;
-
-    for (const customer of data.customers) {
-      await prisma.customer.upsert({
-        where: {
-          organizationId_externalCode: {
+    await prisma.$transaction(async (tx) => {
+      for (const customer of data.customers) {
+        await tx.customer.upsert({
+          where: {
+            organizationId_externalCode: {
+              organizationId: parsed.data.organizationId,
+              externalCode: customer.externalCode
+            }
+          },
+          update: {
+            name: customer.name,
+            vatNumber: customer.vatNumber,
+            taxOffice: customer.taxOffice,
+            address: customer.address,
+            city: customer.city,
+            postalCode: customer.postalCode,
+            phone: customer.phone
+          },
+          create: {
             organizationId: parsed.data.organizationId,
-            externalCode: customer.externalCode
+            externalCode: customer.externalCode,
+            type: "BUSINESS",
+            name: customer.name,
+            vatNumber: customer.vatNumber,
+            taxOffice: customer.taxOffice,
+            address: customer.address,
+            city: customer.city,
+            postalCode: customer.postalCode,
+            phone: customer.phone,
+            country: "GR"
           }
-        },
-        update: {
-          name: customer.name,
-          vatNumber: customer.vatNumber,
-          taxOffice: customer.taxOffice,
-          address: customer.address,
-          city: customer.city,
-          postalCode: customer.postalCode,
-          phone: customer.phone
-        },
-        create: {
-          organizationId: parsed.data.organizationId,
-          externalCode: customer.externalCode,
-          type: "BUSINESS",
-          name: customer.name,
-          vatNumber: customer.vatNumber,
-          taxOffice: customer.taxOffice,
-          address: customer.address,
-          city: customer.city,
-          postalCode: customer.postalCode,
-          phone: customer.phone,
-          country: "GR"
-        }
-      });
-      customersImported += 1;
-    }
+        });
+      }
 
-    for (const product of data.products) {
-      await prisma.product.upsert({
-        where: {
-          organizationId_code: {
+      for (const product of data.products) {
+        await tx.product.upsert({
+          where: {
+            organizationId_code: {
+              organizationId: parsed.data.organizationId,
+              code: product.code
+            }
+          },
+          update: {
+            name: product.name,
+            unit: product.unit,
+            unitPrice: product.unitPrice,
+            vatRate: product.vatRate,
+            active: true
+          },
+          create: {
             organizationId: parsed.data.organizationId,
-            code: product.code
+            code: product.code,
+            name: product.name,
+            unit: product.unit,
+            unitPrice: product.unitPrice,
+            vatRate: product.vatRate,
+            active: true
           }
-        },
-        update: {
-          name: product.name,
-          unit: product.unit,
-          unitPrice: product.unitPrice,
-          vatRate: product.vatRate,
-          active: true
-        },
-        create: {
-          organizationId: parsed.data.organizationId,
-          code: product.code,
-          name: product.name,
-          unit: product.unit,
-          unitPrice: product.unitPrice,
-          vatRate: product.vatRate,
-          active: true
-        }
-      });
-      productsImported += 1;
-    }
+        });
+      }
+    }, { timeout: 120000 });
+
+    const customersImported = data.customers.length;
+    const productsImported = data.products.length;
 
     return res.json({
       ok: true,
