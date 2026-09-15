@@ -5,6 +5,7 @@ import { authRouter } from "./routes/auth.js";
 import { catalogRouter } from "./routes/catalog.js";
 import { customerRouter } from "./routes/customers.js";
 import { invoiceSeriesRouter } from "./routes/invoice-series.js";
+import { inventoryRouter } from "./routes/inventory.js";
 import { invoiceRouter } from "./routes/invoices.js";
 import { organizationRouter } from "./routes/organizations.js";
 import { productRouter } from "./routes/products.js";
@@ -27,6 +28,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/invoices", invoiceRouter);
+app.use("/api/inventory", inventoryRouter);
 app.use("/api/organizations", organizationRouter);
 app.use("/api/customers", customerRouter);
 app.use("/api/catalog", catalogRouter);
