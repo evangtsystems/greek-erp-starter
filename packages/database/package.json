@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "generate": "prisma generate --schema prisma/schema.prisma",
-    "migrate": "prisma migrate dev --schema prisma/schema.prisma"
+    "generate": "node scripts/prisma.mjs prisma generate --schema prisma/schema.prisma",
+    "migrate": "node scripts/prisma.mjs prisma migrate dev --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0"
