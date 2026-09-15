@@ -22,7 +22,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 type Organization = { id: string; name: string; country: string };
 type Customer = { id: string; name: string; vatNumber: string | null };
 type Product = { id: string; code: string | null; name: string; unitPrice: string; vatRate: string };
-type InvoiceSeries = { id: string; code: string; documentType: string; nextNumber: number };
+type InvoiceSeries = { id: string; code: string; documentType: string; nextNumber: number; providerBillingBookId?: string | null };
 type Invoice = {
   id: string;
   invoiceNumber: number | null;
@@ -32,6 +32,9 @@ type Invoice = {
   vatAmount: string;
   totalAmount: string;
   providerStatus: string | null;
+  mydataMark?: string | null;
+  mydataUid?: string | null;
+  qrUrl?: string | null;
   customer: Customer | null;
   series: InvoiceSeries;
 };
@@ -76,6 +79,7 @@ export default function Home() {
   const [vatLookup, setVatLookup] = useState<VatLookup | null>(null);
   const [customerName, setCustomerName] = useState("Acme Greek Customer");
   const [customerVat, setCustomerVat] = useState("099999999");
+  const [wrappAdminKey, setWrappAdminKey] = useState("");
 
   const selectedOrganization = useMemo(
     () => organizations.find((org) => org.id === selectedOrganizationId),
@@ -197,8 +201,9 @@ export default function Home() {
       body: JSON.stringify({
         organizationId: selectedOrganizationId,
         code: form.get("code"),
-        documentType: "SERVICE_INVOICE",
-        nextNumber: Number(form.get("nextNumber"))
+        documentType: form.get("documentType"),
+        nextNumber: Number(form.get("nextNumber")),
+        providerBillingBookId: form.get("providerBillingBookId") || null
       })
     });
     await loadTenantData(selectedOrganizationId);
@@ -258,8 +263,18 @@ export default function Home() {
         customerId: customer.id,
         seriesId: firstSeries.id,
         documentType: firstSeries.documentType,
-        lines: [{ productId: product.id, description: product.name, quantity: 1, unitPrice: Number(product.unitPrice), vatRate: Number(product.vatRate) }]
+        lines: [{ productId: product.id, description: product.name, quantity: 1, unitPrice: Number(product.unitPrice), vatRate: Number(product.vatRate), vatCategory: "VAT_24", classificationType: "E3_561_001", classificationCategory: "category1_1" }]
       })
+    });
+    await loadTenantData(selectedOrganizationId);
+  };
+
+  const issueWrappStaging = async (invoiceId: string) => {
+    if (!wrappAdminKey) throw new Error("Enter the staging admin key first");
+    await api(`/invoices/${invoiceId}/issue-wrapp-staging`, {
+      method: "POST",
+      headers: { "X-ERP-ADMIN-KEY": wrappAdminKey },
+      body: JSON.stringify({ organizationId: selectedOrganizationId })
     });
     await loadTenantData(selectedOrganizationId);
   };
@@ -377,7 +392,9 @@ export default function Home() {
 
           <Panel title="Invoice Series" icon={<ReceiptText size={19} />}>
             <form className="form-grid" onSubmit={(event) => runAction(() => createSeries(event), "Series saved")}>
-              <label>Code<input name="code" defaultValue={series.length ? `A${series.length + 1}` : "A"} required /></label>
+              <label>Code<input name="code" defaultValue={series.length ? `A${series.length + 1}` : "TP"} required /></label>
+              <label>Document type<input name="documentType" defaultValue="1.1" required /></label>
+              <label>Wrapp billing book ID<input name="providerBillingBookId" placeholder="UUID from Wrapp" /></label>
               <label>Next number<input name="nextNumber" type="number" min="1" defaultValue="1" required /></label>
               <button className="wide" disabled={busy || !selectedOrganizationId}>Save Series</button>
             </form>
@@ -392,6 +409,8 @@ export default function Home() {
             </form>
           </Panel>
         </section>
+
+        <section className="command-strip"><label>Wrapp staging admin key<input type="password" value={wrappAdminKey} onChange={(event) => setWrappAdminKey(event.target.value)} placeholder="Required only to issue" /></label></section>
 
         <section className="invoice-section" id="invoices">
           <div className="section-title">
@@ -423,11 +442,14 @@ export default function Home() {
                       <button disabled={busy} onClick={() => runAction(() => queueProviderIssue(invoice.id), "Provider transmission queued")}>
                         <PlugZap size={17} />Provider
                       </button>
-                      <button disabled={busy} onClick={() => runAction(() => issueInvoice(invoice.id), "Invoice issued locally")}>
-                        <Send size={17} />Local
+                      <button disabled={busy || !wrappAdminKey} onClick={() => runAction(() => issueWrappStaging(invoice.id), "Invoice issued via Wrapp staging")}>
+                        <Send size={17} />Wrapp staging
+                      </button>
+                      <button className="secondary" disabled={busy} onClick={() => runAction(() => issueInvoice(invoice.id), "Invoice issued locally")}>
+                        Local
                       </button>
                     </>
-                  ) : <span className="provider">{invoice.providerStatus || "Provider pending"}</span>}
+                  ) : <span className="provider">{invoice.mydataMark ? `MARK ${invoice.mydataMark}` : (invoice.providerStatus || "Provider pending")}</span>}
                 </div>
               </article>
             ))}
