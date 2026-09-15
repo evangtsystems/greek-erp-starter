@@ -50,7 +50,14 @@ const invoiceTemplates: InvoiceTemplate[] = [
   { id: "service", title: "Παροχή υπηρεσίας", description: "Υπηρεσία", price: 100, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
   { id: "product", title: "Πώληση προϊόντος", description: "Εμπόρευμα", price: 50, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
   { id: "technical", title: "Τεχνική εργασία", description: "Τεχνική εργασία", price: 80, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
-  { id: "consulting", title: "Συμβουλευτική", description: "Υπηρεσίες συμβουλευτικής", price: 120, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" }
+  { id: "consulting", title: "Συμβουλευτική", description: "Υπηρεσίες συμβουλευτικής", price: 120, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "website", title: "Κατασκευή ιστοσελίδας", description: "Σχεδιασμός και ανάπτυξη ιστοσελίδας", price: 900, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "eshop", title: "Κατασκευή e-shop", description: "Σχεδιασμός και ανάπτυξη ηλεκτρονικού καταστήματος", price: 1500, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "maintenance", title: "Συντήρηση ιστοσελίδας", description: "Μηνιαία τεχνική συντήρηση και υποστήριξη", price: 80, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "hosting", title: "Φιλοξενία ιστοσελίδας", description: "Ετήσια φιλοξενία και τεχνική υποστήριξη", price: 120, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "domain", title: "Ανανέωση domain", description: "Ανανέωση ονόματος χώρου", price: 20, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "seo", title: "SEO και τοπική προβολή", description: "Βελτιστοποίηση μηχανών αναζήτησης", price: 250, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "integration", title: "Διασύνδεση / αυτοματοποίηση", description: "API, dashboard ή αυτοματοποίηση εργασιών", price: 300, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" }
 ];
 
 type VatLookup = {
