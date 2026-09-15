@@ -22,6 +22,22 @@ export function encryptSecret(plainText: string): string {
   return ["v1", iv.toString("base64"), tag.toString("base64"), encrypted.toString("base64")].join(".");
 }
 
+export function decryptSecret(encryptedValue: string): string {
+  const [version, ivEncoded, tagEncoded, ciphertextEncoded] = encryptedValue.split(".");
+  if (version !== "v1" || !ivEncoded || !tagEncoded || !ciphertextEncoded) {
+    throw new Error("Unsupported encrypted secret format");
+  }
+
+  const decipher = crypto.createDecipheriv(ALGORITHM, key(), Buffer.from(ivEncoded, "base64"));
+  decipher.setAuthTag(Buffer.from(tagEncoded, "base64"));
+  const decrypted = Buffer.concat([
+    decipher.update(Buffer.from(ciphertextEncoded, "base64")),
+    decipher.final()
+  ]);
+
+  return decrypted.toString("utf8");
+}
+
 export function verifyWrappWebhook(rawBody: Buffer, signature?: string): boolean {
   const partnerKey = process.env.WRAPP_PARTNER_API_KEY;
   if (!partnerKey || !signature) return false;
