@@ -59,6 +59,13 @@ enum SerialStatus {
   IN_REPAIR
 }
 
+enum StockMovementType {
+  OPENING
+  RECEIPT
+  SALE
+  ADJUSTMENT
+}
+
 model Organization {
   id           String   @id @default(uuid())
   name         String
@@ -77,6 +84,7 @@ model Organization {
   productFamilies ProductFamily[]
   productCategories ProductCategory[]
   stockSerials StockSerial[]
+  stockMovements StockMovement[]
   invoiceSeries InvoiceSeries[]
   invoices     Invoice[]
   providerCredentials ProviderCredential[]
@@ -182,6 +190,7 @@ model Product {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   category ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   serials StockSerial[]
+  stockMovements StockMovement[]
   invoiceLines InvoiceLine[]
 
   @@unique([organizationId, code])
@@ -201,9 +210,27 @@ model StockSerial {
   updatedAt DateTime @updatedAt @map("updated_at")
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
   @@unique([organizationId, serialNumber])
   @@index([productId, status])
   @@map("stock_serials")
+}
+
+model StockMovement {
+  id String @id @default(uuid())
+  organizationId String @map("organization_id")
+  productId String @map("product_id")
+  serialId String? @map("serial_id")
+  type StockMovementType
+  quantity Decimal @db.Decimal(15, 4)
+  reference String?
+  notes String?
+  createdAt DateTime @default(now()) @map("created_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  serial StockSerial? @relation(fields: [serialId], references: [id], onDelete: SetNull)
+  @@index([organizationId, productId])
+  @@map("stock_movements")
 }
 
 model InvoiceSeries {
