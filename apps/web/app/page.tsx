@@ -44,6 +44,15 @@ type ProviderCredential = {
   environment: string;
   enabled: boolean;
 };
+type InvoiceTemplate = { id: string; title: string; description: string; price: number; vatRate: number; classificationType: string; classificationCategory: string };
+
+const invoiceTemplates: InvoiceTemplate[] = [
+  { id: "service", title: "Παροχή υπηρεσίας", description: "Υπηρεσία", price: 100, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "product", title: "Πώληση προϊόντος", description: "Εμπόρευμα", price: 50, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "technical", title: "Τεχνική εργασία", description: "Τεχνική εργασία", price: 80, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" },
+  { id: "consulting", title: "Συμβουλευτική", description: "Υπηρεσίες συμβουλευτικής", price: 120, vatRate: 24, classificationType: "E3_561_001", classificationCategory: "category1_1" }
+];
+
 type VatLookup = {
   source: string;
   valid: boolean;
@@ -80,6 +89,8 @@ export default function Home() {
   const [customerName, setCustomerName] = useState("Acme Greek Customer");
   const [customerVat, setCustomerVat] = useState("099999999");
   const [wrappAdminKey, setWrappAdminKey] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("service");
+  const [templatePrice, setTemplatePrice] = useState(100);
 
   const selectedOrganization = useMemo(
     () => organizations.find((org) => org.id === selectedOrganizationId),
@@ -252,9 +263,9 @@ export default function Home() {
 
   const createDraftInvoice = async () => {
     const customer = customers[0];
-    const product = products[0];
+    const template = invoiceTemplates.find((item) => item.id === selectedTemplateId);
     const firstSeries = series[0];
-    if (!customer || !product || !firstSeries) throw new Error("Create a customer, product, and series first");
+    if (!customer || !template || !firstSeries) throw new Error("Create a customer and an invoice series first");
 
     await api<Invoice>("/invoices", {
       method: "POST",
@@ -263,7 +274,7 @@ export default function Home() {
         customerId: customer.id,
         seriesId: firstSeries.id,
         documentType: firstSeries.documentType,
-        lines: [{ productId: product.id, description: product.name, quantity: 1, unitPrice: Number(product.unitPrice), vatRate: Number(product.vatRate), vatCategory: "VAT_24", classificationType: "E3_561_001", classificationCategory: "category1_1" }]
+        lines: [{ description: template.description, quantity: 1, unitPrice: templatePrice, vatRate: template.vatRate, vatCategory: "VAT_24", classificationType: template.classificationType, classificationCategory: template.classificationCategory }]
       })
     });
     await loadTenantData(selectedOrganizationId);
@@ -341,8 +352,14 @@ export default function Home() {
           <Metric icon={<PlugZap />} label="Providers" value={providerCredentials.length} />
         </section>
 
+        <section className="template-panel">
+          <div><span className="eyebrow">Γρήγορη έκδοση</span><h2>Τι θέλεις να τιμολογήσεις;</h2><p>Διάλεξε πρότυπο. Οι φορολογικές προεπιλογές συμπληρώνονται αυτόματα.</p></div>
+          <div className="template-grid">{invoiceTemplates.map((template) => <button type="button" key={template.id} className={selectedTemplateId === template.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedTemplateId(template.id); setTemplatePrice(template.price); }}><strong>{template.title}</strong><span>{template.description}</span><small>ΦΠΑ {template.vatRate}%</small></button>)}</div>
+          <div className="template-actions"><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Draft invoice created")}><FilePlus2 size={18} />Δημιουργία draft</button></div>
+        </section>
+
         <section className="command-strip">
-          <button disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Draft invoice created")}>
+          <button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Draft invoice created")}>
             <FilePlus2 size={18} />New Draft
           </button>
           <button className="secondary" disabled={busy || !selectedOrganizationId} onClick={() => runAction(() => loadTenantData(selectedOrganizationId), "Data refreshed")}>
