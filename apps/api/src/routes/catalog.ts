@@ -1,13 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../../../../packages/database/src/client.js";
+import { requireErpAdmin } from "../services/erp-session.js";
 
 export const catalogRouter = Router();
-catalogRouter.use((req, res, next) => {
-  const key = process.env.ERP_ADMIN_API_KEY;
-  if (!key || req.header("X-ERP-ADMIN-KEY") !== key) return res.status(401).json({ error: "Admin authentication required" });
-  next();
-});
+catalogRouter.use(requireErpAdmin);
 const organization = z.object({ organizationId: z.string().uuid() });
 const notFound = (res: import("express").Response) => res.status(404).json({ error: "Catalog item not found for this organization" });
 
