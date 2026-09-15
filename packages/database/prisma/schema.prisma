@@ -51,6 +51,14 @@ enum PaymentMethodType {
   OTHER
 }
 
+enum SerialStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  RETURNED
+  IN_REPAIR
+}
+
 model Organization {
   id           String   @id @default(uuid())
   name         String
@@ -66,6 +74,9 @@ model Organization {
   members      OrganizationUser[]
   customers    Customer[]
   products     Product[]
+  productFamilies ProductFamily[]
+  productCategories ProductCategory[]
+  stockSerials StockSerial[]
   invoiceSeries InvoiceSeries[]
   invoices     Invoice[]
   providerCredentials ProviderCredential[]
@@ -124,9 +135,37 @@ model Customer {
   @@map("customers")
 }
 
+model ProductFamily {
+  id String @id @default(uuid())
+  organizationId String @map("organization_id")
+  name String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  categories ProductCategory[]
+  @@unique([organizationId, name])
+  @@map("product_families")
+}
+
+model ProductCategory {
+  id String @id @default(uuid())
+  organizationId String @map("organization_id")
+  familyId String @map("family_id")
+  name String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  family ProductFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  products Product[]
+  @@unique([familyId, name])
+  @@index([organizationId])
+  @@map("product_categories")
+}
+
 model Product {
   id             String   @id @default(uuid())
   organizationId String   @map("organization_id")
+  categoryId String? @map("category_id")
   code           String?
   name           String
   description    String?
@@ -136,15 +175,35 @@ model Product {
   classificationType String? @map("classification_type")
   classificationCategory String? @map("classification_category")
   active         Boolean  @default(true)
+  trackSerialNumbers Boolean @default(false) @map("track_serial_numbers")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  serials StockSerial[]
   invoiceLines InvoiceLine[]
 
   @@unique([organizationId, code])
+  @@index([categoryId])
   @@index([organizationId])
   @@map("products")
+}
+
+model StockSerial {
+  id String @id @default(uuid())
+  organizationId String @map("organization_id")
+  productId String @map("product_id")
+  serialNumber String @map("serial_number")
+  status SerialStatus @default(AVAILABLE)
+  notes String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@unique([organizationId, serialNumber])
+  @@index([productId, status])
+  @@map("stock_serials")
 }
 
 model InvoiceSeries {
