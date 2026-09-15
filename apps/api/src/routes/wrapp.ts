@@ -27,6 +27,16 @@ async function tenantJwt(organizationId: string) {
   if (!response.ok || typeof jwt !== "string") throw new Error("Wrapp tenant login failed");
   return jwt;
 }
+async function stagingJwt() {
+  const email = process.env.WRAPP_STAGING_TENANT_EMAIL;
+  const apiKey = process.env.WRAPP_STAGING_TENANT_API_KEY;
+  if (!email || !apiKey) throw new Error("WRAPP_STAGING_TENANT_EMAIL and WRAPP_STAGING_TENANT_API_KEY are required");
+  const response = await fetch(`${baseUrl()}/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, api_key: apiKey }) });
+  const body = await response.json().catch(() => null);
+  const jwt = body?.data?.attributes?.jwt;
+  if (!response.ok || typeof jwt !== "string") throw new Error("Wrapp staging login failed");
+  return jwt;
+}
 async function wrappGet(path: string, jwt: string) {
   const response = await fetch(`${baseUrl()}${path}`, { headers: { Accept: "application/json", Authorization: `Bearer ${jwt}` } });
   const body = await response.json().catch(() => null);
@@ -65,6 +75,12 @@ wrappRouter.get("/catalog", async (req, res) => {
     const [branches, billingBooks] = await Promise.all([wrappGet("/branches", jwt), wrappGet("/billing_books", jwt)]);
     res.json({ branches, billingBooks });
   } catch (error) { res.status(502).json({ error: error instanceof Error ? error.message : "Could not load Wrapp catalog" }); }
+});
+
+wrappRouter.get("/catalog/staging", async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: "Admin authentication required" });
+  try { const jwt = await stagingJwt(); const [branches, billingBooks] = await Promise.all([wrappGet("/branches", jwt), wrappGet("/billing_books", jwt)]); res.json({ branches, billingBooks }); }
+  catch (error) { res.status(502).json({ error: error instanceof Error ? error.message : "Could not load Wrapp staging catalog" }); }
 });
 
 wrappRouter.post("/webhooks/user-created", async (req, res) => {
