@@ -134,7 +134,6 @@ model Product {
   unitPrice      Decimal  @db.Decimal(15, 4) @map("unit_price")
   vatRate        Decimal  @db.Decimal(5, 2) @map("vat_rate")
   active         Boolean  @default(true)
-  providerBillingBookId String? @map("provider_billing_book_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -153,6 +152,7 @@ model InvoiceSeries {
   documentType   String   @map("document_type")
   nextNumber     Int      @default(1) @map("next_number")
   active         Boolean  @default(true)
+  providerBillingBookId String? @map("provider_billing_book_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
