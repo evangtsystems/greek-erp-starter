@@ -13,7 +13,8 @@ const createInvoiceSeriesSchema = z.object({
   code: z.string().min(1),
   documentType: z.string().min(1),
   nextNumber: z.coerce.number().int().positive().default(1),
-  active: z.boolean().default(true)
+  active: z.boolean().default(true),
+  providerBillingBookId: z.string().uuid().nullable().optional()
 });
 
 invoiceSeriesRouter.post("/", async (req, res) => {
@@ -31,7 +32,8 @@ invoiceSeriesRouter.post("/", async (req, res) => {
       code: data.code,
       documentType: data.documentType,
       nextNumber: data.nextNumber,
-      active: data.active
+      active: data.active,
+      providerBillingBookId: data.providerBillingBookId ?? null
     }
   });
 
