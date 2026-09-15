@@ -327,6 +327,48 @@ nav a:hover {
   overflow-wrap: anywhere;
 }
 
+.template-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 18px;
+}
+
+.template-panel h2 { margin: 0; font-size: 20px; }
+.template-panel p { color: var(--muted); margin: 6px 0 0; }
+
+.template-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+button.template-card {
+  align-items: flex-start;
+  background: #f8fbfa;
+  border-color: var(--line);
+  color: var(--ink);
+  display: grid;
+  gap: 5px;
+  justify-content: start;
+  min-height: 108px;
+  padding: 14px;
+  text-align: left;
+}
+
+button.template-card:hover, button.template-card.selected {
+  background: var(--soft);
+  border-color: var(--accent);
+}
+
+.template-card span, .template-card small { color: var(--muted); font-weight: 600; }
+.template-actions { align-items: end; display: flex; flex-wrap: wrap; gap: 10px; }
+.template-actions label { min-width: 200px; }
+
 .command-strip {
   display: flex;
   gap: 10px;
