@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "generate": "node scripts/prisma.mjs prisma generate --schema prisma/schema.prisma",
-    "migrate": "node scripts/prisma.mjs prisma migrate dev --schema prisma/schema.prisma"
+    "migrate": "node scripts/prisma.mjs prisma migrate dev --schema prisma/schema.prisma",
+    "deploy": "node scripts/prisma.mjs prisma migrate deploy --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0"
