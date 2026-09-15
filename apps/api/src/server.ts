@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import express from "express";
+import { catalogRouter } from "./routes/catalog.js";
 import { customerRouter } from "./routes/customers.js";
 import { invoiceSeriesRouter } from "./routes/invoice-series.js";
 import { invoiceRouter } from "./routes/invoices.js";
@@ -26,6 +27,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/invoices", invoiceRouter);
 app.use("/api/organizations", organizationRouter);
 app.use("/api/customers", customerRouter);
+app.use("/api/catalog", catalogRouter);
 app.use("/api/products", productRouter);
 app.use("/api/invoice-series", invoiceSeriesRouter);
 app.use("/api/provider-credentials", providerCredentialRouter);
