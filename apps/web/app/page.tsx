@@ -91,6 +91,8 @@ export default function Home() {
   const [wrappAdminKey, setWrappAdminKey] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("service");
   const [templatePrice, setTemplatePrice] = useState(100);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [selectedSeriesId, setSelectedSeriesId] = useState("");
 
   const selectedOrganization = useMemo(
     () => organizations.find((org) => org.id === selectedOrganizationId),
@@ -118,6 +120,8 @@ export default function Home() {
     setCustomers(customerData);
     setProducts(productData);
     setSeries(seriesData);
+    setSelectedCustomerId((current) => current || customerData[0]?.id || "");
+    setSelectedSeriesId((current) => current || seriesData[0]?.id || "");
     setInvoices(invoiceData);
     setProviderCredentials(providerData);
   };
@@ -262,10 +266,10 @@ export default function Home() {
   };
 
   const createDraftInvoice = async () => {
-    const customer = customers[0];
+    const customer = customers.find((item) => item.id === selectedCustomerId);
     const template = invoiceTemplates.find((item) => item.id === selectedTemplateId);
-    const firstSeries = series[0];
-    if (!customer || !template || !firstSeries) throw new Error("Δημιούργησε πρώτα πελάτη και σειρά παραστατικών");
+    const firstSeries = series.find((item) => item.id === selectedSeriesId);
+    if (!customer || !template || !firstSeries) throw new Error("Διάλεξε πελάτη και σειρά παραστατικών");
 
     await api<Invoice>("/invoices", {
       method: "POST",
@@ -355,7 +359,7 @@ export default function Home() {
         <section className="template-panel">
           <div><span className="eyebrow">Γρήγορη έκδοση</span><h2>Τι θέλεις να τιμολογήσεις;</h2><p>Διάλεξε πρότυπο. Οι φορολογικές προεπιλογές συμπληρώνονται αυτόματα.</p></div>
           <div className="template-grid">{invoiceTemplates.map((template) => <button type="button" key={template.id} className={selectedTemplateId === template.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedTemplateId(template.id); setTemplatePrice(template.price); }}><strong>{template.title}</strong><span>{template.description}</span><small>ΦΠΑ {template.vatRate}%</small></button>)}</div>
-          <div className="template-actions"><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedOrganizationId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε")}><FilePlus2 size={18} />Δημιουργία draft</button></div>
+          <div className="template-actions"><label>Πελάτης<select value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)}><option value="">Επιλογή πελάτη</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label><label>Σειρά<select value={selectedSeriesId} onChange={(event) => setSelectedSeriesId(event.target.value)}><option value="">Επιλογή σειράς</option>{series.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.documentType}</option>)}</select></label><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedOrganizationId || !selectedCustomerId || !selectedSeriesId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε")}><FilePlus2 size={18} />Δημιουργία draft</button></div>
         </section>
 
         <section className="command-strip">
