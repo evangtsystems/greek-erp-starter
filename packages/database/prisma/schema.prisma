@@ -151,6 +151,7 @@ model OrganizationUser {
 model Customer {
   id             String       @id @default(uuid())
   organizationId String       @map("organization_id")
+  externalCode   String?      @map("external_code")
   type           CustomerType @default(BUSINESS)
   name           String
   vatNumber      String?      @map("vat_number")
@@ -170,6 +171,7 @@ model Customer {
   quotes       Quote[]
   salesOrders  SalesOrder[]
 
+  @@unique([organizationId, externalCode])
   @@index([organizationId])
   @@index([organizationId, vatNumber])
   @@map("customers")
@@ -612,4 +614,3 @@ model SalesOrderLine {
   @@unique([salesOrderId, lineNo])
   @@map("sales_order_lines")
 }
-
