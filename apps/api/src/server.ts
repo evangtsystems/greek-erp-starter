@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import express from "express";
+import { authRouter } from "./routes/auth.js";
 import { catalogRouter } from "./routes/catalog.js";
 import { customerRouter } from "./routes/customers.js";
 import { invoiceSeriesRouter } from "./routes/invoice-series.js";
@@ -24,6 +25,7 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.use("/api/auth", authRouter);
 app.use("/api/invoices", invoiceRouter);
 app.use("/api/organizations", organizationRouter);
 app.use("/api/customers", customerRouter);
