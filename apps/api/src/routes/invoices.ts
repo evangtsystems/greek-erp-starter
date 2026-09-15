@@ -4,6 +4,7 @@ import { prisma } from "../../../../packages/database/src/client.js";
 import { validateInvoiceReadiness } from "../services/invoice-readiness.js";
 import { issueInvoiceWithProvider } from "../services/provider-issue.js";
 import { issueWrappStagingInvoice } from "../services/wrapp-staging-issue.js";
+import { requireErpAdmin } from "../services/erp-session.js";
 
 export const invoiceRouter = Router();
 
@@ -122,9 +123,7 @@ invoiceRouter.get("/:id/readiness", async (req, res) => {
   });
 });
 
-invoiceRouter.post("/:id/issue-wrapp-staging", async (req, res) => {
-  const adminKey = process.env.ERP_ADMIN_API_KEY;
-  if (!adminKey || req.header("X-ERP-ADMIN-KEY") !== adminKey) return res.status(401).json({ error: "Admin authentication required" });
+invoiceRouter.post("/:id/issue-wrapp-staging", requireErpAdmin, async (req, res) => {
   const organizationId = String(req.body.organizationId ?? "");
   try { res.status(201).json(await issueWrappStagingInvoice(organizationId, req.params.id)); }
   catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : "Could not issue staging invoice" }); }
