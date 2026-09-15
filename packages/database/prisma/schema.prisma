@@ -133,6 +133,8 @@ model Product {
   unit           String   @default("piece")
   unitPrice      Decimal  @db.Decimal(15, 4) @map("unit_price")
   vatRate        Decimal  @db.Decimal(5, 2) @map("vat_rate")
+  classificationType String? @map("classification_type")
+  classificationCategory String? @map("classification_category")
   active         Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
