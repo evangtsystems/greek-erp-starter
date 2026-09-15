@@ -1,14 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../../../../packages/database/src/client.js";
+import { requireErpAdmin } from "../services/erp-session.js";
 
 export const productRouter = Router();
-productRouter.use((req, res, next) => {
-  if (req.method === "GET") return next();
-  const key = process.env.ERP_ADMIN_API_KEY;
-  if (!key || req.header("X-ERP-ADMIN-KEY") !== key) return res.status(401).json({ error: "Admin authentication required" });
-  next();
-});
+productRouter.use((req, res, next) => req.method === "GET" ? next() : requireErpAdmin(req, res, next));
 
 const organizationQuerySchema = z.object({
   organizationId: z.string().uuid()
