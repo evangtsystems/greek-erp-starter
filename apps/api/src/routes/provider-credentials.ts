@@ -68,12 +68,12 @@ providerCredentialRouter.post("/", async (req, res) => {
       environment: data.environment,
       enabled: data.enabled,
       credentials,
-      metadata: metadata ?? null
+      metadata: metadata ?? undefined
     },
     update: {
       enabled: data.enabled,
       credentials,
-      metadata: metadata ?? null
+      metadata: metadata ?? undefined
     }
   });
 

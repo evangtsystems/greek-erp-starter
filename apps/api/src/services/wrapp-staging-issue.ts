@@ -40,6 +40,20 @@ export async function issueWrappStagingInvoice(organizationId: string, invoiceId
     const result = await prisma.$transaction(async tx => {
       const issued = await tx.invoice.update({ where: { id: invoiceId }, data: { status: "ISSUED", providerStatus: "ISSUED", providerDocumentId: provider.id ?? null, mydataMark: provider.my_data_mark ?? null, mydataUid: provider.my_data_uid ?? null, qrUrl: provider.my_data_qr_url ?? provider.wrapp_invoice_url ?? null, issuedAt: new Date() } });
       await tx.providerTransmission.updateMany({ where: { invoiceId, provider: "WRAPP_STAGING", status: "PROCESSING" }, data: { status: "SUCCESS", responsePayload: provider, completedAt: new Date() } });
+      for (const line of invoice.lines) {
+        if (line.productId) {
+          await tx.stockMovement.create({
+            data: {
+              organizationId,
+              productId: line.productId,
+              type: "SALE",
+              quantity: -Math.abs(Number(line.quantity)),
+              reference: `${invoice.series.code}-${assigned.invoiceNumber}`,
+              notes: `Αυτόματη μείωση από έκδοση Wrapp ${invoice.series.code}-${assigned.invoiceNumber}`
+            }
+          });
+        }
+      }
       return issued;
     });
     return { invoice: result, provider };

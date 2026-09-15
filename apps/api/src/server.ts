@@ -11,6 +11,12 @@ import { productRouter } from "./routes/products.js";
 import { providerCredentialRouter } from "./routes/provider-credentials.js";
 import { vatRouter } from "./routes/vat.js";
 import { wrappRouter } from "./routes/wrapp.js";
+import { inventoryRouter } from "./routes/inventory.js";
+import { supplierRouter } from "./routes/suppliers.js";
+import { purchaseRouter } from "./routes/purchases.js";
+import { paymentRouter } from "./routes/payments.js";
+import { quoteRouter } from "./routes/quotes.js";
+import { orderRouter } from "./routes/orders.js";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.resolve(currentDir, "../../../.env"));
@@ -27,10 +33,16 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/invoices", invoiceRouter);
+app.use("/api/purchases", purchaseRouter);
+app.use("/api/payments", paymentRouter);
+app.use("/api/quotes", quoteRouter);
+app.use("/api/orders", orderRouter);
 app.use("/api/organizations", organizationRouter);
 app.use("/api/customers", customerRouter);
+app.use("/api/suppliers", supplierRouter);
 app.use("/api/catalog", catalogRouter);
 app.use("/api/products", productRouter);
+app.use("/api/inventory", inventoryRouter);
 app.use("/api/invoice-series", invoiceSeriesRouter);
 app.use("/api/provider-credentials", providerCredentialRouter);
 app.use("/api/vat", vatRouter);

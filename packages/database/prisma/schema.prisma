@@ -59,6 +59,37 @@ enum SerialStatus {
   IN_REPAIR
 }
 
+enum StockMovementType {
+  INITIAL
+  RECEIPT
+  SALE
+  ADJUSTMENT
+  RETURN
+}
+
+enum PaymentType {
+  CUSTOMER_RECEIPT
+  SUPPLIER_PAYMENT
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  CONVERTED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  COMPLETED
+  INVOICED
+  CANCELLED
+}
+
 model Organization {
   id           String   @id @default(uuid())
   name         String
@@ -73,12 +104,18 @@ model Organization {
 
   members      OrganizationUser[]
   customers    Customer[]
+  suppliers    Supplier[]
   products     Product[]
   productFamilies ProductFamily[]
   productCategories ProductCategory[]
   stockSerials StockSerial[]
+  stockMovements StockMovement[]
   invoiceSeries InvoiceSeries[]
   invoices     Invoice[]
+  purchases    PurchaseInvoice[]
+  payments     Payment[]
+  quotes       Quote[]
+  salesOrders  SalesOrder[]
   providerCredentials ProviderCredential[]
   transmissions ProviderTransmission[]
   auditLogs    AuditLog[]
@@ -129,10 +166,37 @@ model Customer {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invoices     Invoice[]
+  payments     Payment[]
+  quotes       Quote[]
+  salesOrders  SalesOrder[]
 
   @@index([organizationId])
   @@index([organizationId, vatNumber])
   @@map("customers")
+}
+
+model Supplier {
+  id             String            @id @default(uuid())
+  organizationId String            @map("organization_id")
+  name           String
+  vatNumber      String?           @map("vat_number")
+  taxOffice      String?           @map("tax_office")
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  postalCode     String?           @map("postal_code")
+  country        String            @default("GR")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  purchases      PurchaseInvoice[]
+  payments       Payment[]
+
+  @@index([organizationId])
+  @@index([organizationId, vatNumber])
+  @@map("suppliers")
 }
 
 model ProductFamily {
@@ -182,7 +246,11 @@ model Product {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   category ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   serials StockSerial[]
+  stockMovements StockMovement[]
   invoiceLines InvoiceLine[]
+  purchaseLines PurchaseInvoiceLine[]
+  quoteLines QuoteLine[]
+  orderLines SalesOrderLine[]
 
   @@unique([organizationId, code])
   @@index([categoryId])
@@ -204,6 +272,25 @@ model StockSerial {
   @@unique([organizationId, serialNumber])
   @@index([productId, status])
   @@map("stock_serials")
+}
+
+model StockMovement {
+  id             String            @id @default(uuid())
+  organizationId String            @map("organization_id")
+  productId      String            @map("product_id")
+  type           StockMovementType
+  quantity       Decimal           @db.Decimal(15, 4)
+  unitCost       Decimal?          @db.Decimal(15, 4) @map("unit_cost")
+  reference      String?
+  notes          String?
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product        Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, productId])
+  @@index([organizationId, createdAt])
+  @@map("stock_movements")
 }
 
 model InvoiceSeries {
@@ -246,18 +333,26 @@ model Invoice {
   qrUrl              String?       @map("qr_url")
   issuedAt           DateTime?     @map("issued_at")
   cancelledAt        DateTime?     @map("cancelled_at")
+  cancelReason       String?       @map("cancel_reason")
+  creditedInvoiceId  String?       @map("credited_invoice_id")
   createdAt          DateTime      @default(now()) @map("created_at")
   updatedAt          DateTime      @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  series       InvoiceSeries @relation(fields: [seriesId], references: [id], onDelete: Restrict)
-  lines        InvoiceLine[]
-  transmissions ProviderTransmission[]
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customer        Customer?      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  series          InvoiceSeries  @relation(fields: [seriesId], references: [id], onDelete: Restrict)
+  creditedInvoice Invoice?       @relation("CreditNoteRelation", fields: [creditedInvoiceId], references: [id], onDelete: SetNull)
+  creditNotes     Invoice[]      @relation("CreditNoteRelation")
+  lines           InvoiceLine[]
+  transmissions   ProviderTransmission[]
+  payments        Payment[]
+  convertedFromQuote Quote?      @relation("QuoteToInvoice")
+  convertedFromOrder SalesOrder? @relation("OrderToInvoice")
 
   @@unique([organizationId, seriesId, invoiceNumber])
   @@index([organizationId, status])
   @@index([organizationId, issueDate])
+  @@index([creditedInvoiceId])
   @@map("invoices")
 }
 
@@ -283,6 +378,54 @@ model InvoiceLine {
 
   @@unique([invoiceId, lineNo])
   @@map("invoice_lines")
+}
+
+model PurchaseInvoice {
+  id             String                @id @default(uuid())
+  organizationId String                @map("organization_id")
+  supplierId     String                @map("supplier_id")
+  documentNumber String                @map("document_number")
+  documentType   String                @default("14.1") @map("document_type")
+  issueDate      DateTime              @map("issue_date")
+  paymentMethod  PaymentMethodType     @default(BANK_TRANSFER) @map("payment_method")
+  paymentStatus  String                @default("PAID") @map("payment_status")
+  netAmount      Decimal               @default(0) @db.Decimal(15, 2) @map("net_amount")
+  vatAmount      Decimal               @default(0) @db.Decimal(15, 2) @map("vat_amount")
+  totalAmount    Decimal               @default(0) @db.Decimal(15, 2) @map("total_amount")
+  notes          String?
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  supplier       Supplier              @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  lines          PurchaseInvoiceLine[]
+  payments       Payment[]
+
+  @@unique([organizationId, supplierId, documentNumber])
+  @@index([organizationId, issueDate])
+  @@map("purchase_invoices")
+}
+
+model PurchaseInvoiceLine {
+  id             String          @id @default(uuid())
+  purchaseId     String          @map("purchase_id")
+  productId      String?         @map("product_id")
+  lineNo         Int             @map("line_no")
+  description    String
+  quantity       Decimal         @db.Decimal(15, 4)
+  unitPrice      Decimal         @db.Decimal(15, 4) @map("unit_price")
+  netValue       Decimal         @db.Decimal(15, 2) @map("net_value")
+  vatRate        Decimal         @db.Decimal(5, 2) @map("vat_rate")
+  vatAmount      Decimal         @db.Decimal(15, 2) @map("vat_amount")
+  totalValue     Decimal         @db.Decimal(15, 2) @map("total_value")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  purchase       PurchaseInvoice @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product        Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([purchaseId, lineNo])
+  @@map("purchase_invoice_lines")
 }
 
 model ProviderTransmission {
@@ -345,3 +488,128 @@ model AuditLog {
   @@index([organizationId, entityType, entityId])
   @@map("audit_logs")
 }
+
+model Payment {
+  id                String            @id @default(uuid())
+  organizationId    String            @map("organization_id")
+  type              PaymentType
+  customerId        String?           @map("customer_id")
+  supplierId        String?           @map("supplier_id")
+  invoiceId         String?           @map("invoice_id")
+  purchaseInvoiceId String?           @map("purchase_invoice_id")
+  amount            Decimal           @db.Decimal(15, 2)
+  paymentMethod     PaymentMethodType @default(BANK_TRANSFER) @map("payment_method")
+  paymentDate       DateTime          @default(now()) @map("payment_date")
+  reference         String?
+  notes             String?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer          Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  supplier          Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  invoice           Invoice?          @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  purchaseInvoice   PurchaseInvoice?  @relation(fields: [purchaseInvoiceId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, type])
+  @@index([organizationId, customerId])
+  @@index([organizationId, supplierId])
+  @@index([organizationId, paymentDate])
+  @@map("payments")
+}
+
+model Quote {
+  id                 String       @id @default(uuid())
+  organizationId     String       @map("organization_id")
+  customerId         String?      @map("customer_id")
+  quoteNumber        String       @map("quote_number")
+  status             QuoteStatus  @default(DRAFT)
+  issueDate          DateTime     @default(now()) @map("issue_date")
+  validUntil         DateTime?    @map("valid_until")
+  netAmount          Decimal      @default(0) @db.Decimal(15, 2) @map("net_amount")
+  vatAmount          Decimal      @default(0) @db.Decimal(15, 2) @map("vat_amount")
+  totalAmount        Decimal      @default(0) @db.Decimal(15, 2) @map("total_amount")
+  notes              String?
+  convertedInvoiceId String?      @unique @map("converted_invoice_id")
+  convertedOrderId   String?      @unique @map("converted_order_id")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer           Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  convertedInvoice   Invoice?     @relation("QuoteToInvoice", fields: [convertedInvoiceId], references: [id], onDelete: SetNull)
+  convertedOrder     SalesOrder?  @relation("QuoteToOrder", fields: [convertedOrderId], references: [id], onDelete: SetNull)
+  lines              QuoteLine[]
+
+  @@unique([organizationId, quoteNumber])
+  @@index([organizationId, status])
+  @@map("quotes")
+}
+
+model QuoteLine {
+  id          String   @id @default(uuid())
+  quoteId     String   @map("quote_id")
+  productId   String?  @map("product_id")
+  lineNo      Int      @map("line_no")
+  description String
+  quantity    Decimal  @db.Decimal(15, 4)
+  unitPrice   Decimal  @db.Decimal(15, 4) @map("unit_price")
+  netValue    Decimal  @db.Decimal(15, 2) @map("net_value")
+  vatRate     Decimal  @db.Decimal(5, 2) @map("vat_rate")
+  vatAmount   Decimal  @db.Decimal(15, 2) @map("vat_amount")
+  totalValue  Decimal  @db.Decimal(15, 2) @map("total_value")
+
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([quoteId, lineNo])
+  @@map("quote_lines")
+}
+
+model SalesOrder {
+  id                   String           @id @default(uuid())
+  organizationId       String           @map("organization_id")
+  customerId           String?          @map("customer_id")
+  orderNumber          String           @map("order_number")
+  status               OrderStatus      @default(PENDING)
+  orderDate            DateTime         @default(now()) @map("order_date")
+  expectedDeliveryDate DateTime?        @map("expected_delivery_date")
+  netAmount            Decimal          @default(0) @db.Decimal(15, 2) @map("net_amount")
+  vatAmount            Decimal          @default(0) @db.Decimal(15, 2) @map("vat_amount")
+  totalAmount          Decimal          @default(0) @db.Decimal(15, 2) @map("total_amount")
+  notes                String?
+  invoicedInvoiceId    String?          @unique @map("invoiced_invoice_id")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+
+  organization         Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer             Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  invoicedInvoice      Invoice?         @relation("OrderToInvoice", fields: [invoicedInvoiceId], references: [id], onDelete: SetNull)
+  sourceQuote          Quote?           @relation("QuoteToOrder")
+  lines                SalesOrderLine[]
+
+  @@unique([organizationId, orderNumber])
+  @@index([organizationId, status])
+  @@map("sales_orders")
+}
+
+model SalesOrderLine {
+  id           String     @id @default(uuid())
+  salesOrderId String     @map("sales_order_id")
+  productId    String?    @map("product_id")
+  lineNo       Int        @map("line_no")
+  description  String
+  quantity     Decimal    @db.Decimal(15, 4)
+  unitPrice    Decimal    @db.Decimal(15, 4) @map("unit_price")
+  netValue     Decimal    @db.Decimal(15, 2) @map("net_value")
+  vatRate      Decimal    @db.Decimal(5, 2) @map("vat_rate")
+  vatAmount    Decimal    @db.Decimal(15, 2) @map("vat_amount")
+  totalValue   Decimal    @db.Decimal(15, 2) @map("total_value")
+
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product      Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([salesOrderId, lineNo])
+  @@map("sales_order_lines")
+}
+
