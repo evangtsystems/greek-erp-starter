@@ -8,6 +8,7 @@ export const wrappRouter = Router();
 const onboardingSchema = z.object({ organizationId: z.string().uuid(), email: z.string().email(), phone: z.string().min(6), webhookEndpoint: z.string().url().optional() });
 const organizationQuerySchema = z.object({ organizationId: z.string().uuid() });
 const webhookSchema = z.object({ wrapp_user_id: z.string().min(1), partner_user_id: z.string().min(1), api_key: z.string().min(1) });
+const stagingInvoiceSchema = z.object({ invoice_type_code: z.string().min(1), billing_book_id: z.string().uuid() }).passthrough();
 
 function baseUrl() { return (process.env.WRAPP_BASE_URL ?? "https://staging.wrapp.ai/api/v1").replace(/\/$/, ""); }
 function isAdmin(req: { header(name: string): string | undefined }) {
@@ -81,6 +82,19 @@ wrappRouter.get("/catalog/staging", async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: "Admin authentication required" });
   try { const jwt = await stagingJwt(); const [branches, billingBooks] = await Promise.all([wrappGet("/branches", jwt), wrappGet("/billing_books", jwt)]); res.json({ branches, billingBooks }); }
   catch (error) { res.status(502).json({ error: error instanceof Error ? error.message : "Could not load Wrapp staging catalog" }); }
+});
+
+wrappRouter.post("/invoices/staging", async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: "Admin authentication required" });
+  const parsed = stagingInvoiceSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  try {
+    const jwt = await stagingJwt();
+    const response = await fetch(`${baseUrl()}/invoices`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` }, body: JSON.stringify(parsed.data) });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) return res.status(502).json({ error: "Wrapp staging invoice failed", providerResponse: body });
+    res.status(201).json(body);
+  } catch (error) { res.status(502).json({ error: error instanceof Error ? error.message : "Could not issue Wrapp staging invoice" }); }
 });
 
 wrappRouter.post("/webhooks/user-created", async (req, res) => {
