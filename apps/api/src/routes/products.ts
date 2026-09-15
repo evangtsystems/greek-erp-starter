@@ -16,6 +16,8 @@ const createProductSchema = z.object({
   unit: z.string().min(1).default("piece"),
   unitPrice: z.coerce.number().nonnegative(),
   vatRate: z.coerce.number().min(0),
+  classificationType: z.string().min(1).nullable().optional(),
+  classificationCategory: z.string().min(1).nullable().optional(),
   active: z.boolean().default(true)
 });
 
@@ -37,6 +39,8 @@ productRouter.post("/", async (req, res) => {
       unit: data.unit,
       unitPrice: data.unitPrice,
       vatRate: data.vatRate,
+      classificationType: data.classificationType ?? null,
+      classificationCategory: data.classificationCategory ?? null,
       active: data.active
     }
   });
