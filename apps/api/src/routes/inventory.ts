@@ -216,10 +216,10 @@ inventoryRouter.post("/transfers", async (req, res) => {
       if (!serialNumbers.length) {
         const balance = await tx.stockMovement.aggregate({ where: { organizationId: data.organizationId, productId: data.productId, warehouseId: data.fromWarehouseId }, _sum: { quantity: true } });
         if (Number(balance._sum.quantity ?? 0) < data.quantity) throw new Error("Ανεπαρκές διαθέσιμο απόθεμα στην αποθήκη προέλευσης.");
-        const common = { organizationId: data.organizationId, productId: data.productId, type: "ADJUSTMENT" as const, reference: data.reference ?? "Μεταφορά αποθήκης", notes: data.notes ?? "Μεταφορά μεταξύ αποθηκών" };
+        const common = { organizationId: data.organizationId, productId: data.productId, type: "TRANSFER_OUT" as const, reference: data.reference ?? "Μεταφορά αποθήκης", notes: data.notes ?? "Μεταφορά μεταξύ αποθηκών" };
         return Promise.all([
           tx.stockMovement.create({ data: { ...common, warehouseId: data.fromWarehouseId, quantity: -data.quantity } }),
-          tx.stockMovement.create({ data: { ...common, warehouseId: data.toWarehouseId, quantity: data.quantity } })
+          tx.stockMovement.create({ data: { ...common, warehouseId: data.toWarehouseId, type: "TRANSFER_IN", quantity: data.quantity } })
         ]);
       }
 
@@ -229,8 +229,8 @@ inventoryRouter.post("/transfers", async (req, res) => {
       const output = [];
       for (const serial of records) {
         await tx.stockSerial.update({ where: { id: serial.id }, data: { warehouseId: data.toWarehouseId } });
-        output.push(await tx.stockMovement.create({ data: { organizationId: data.organizationId, productId: data.productId, warehouseId: data.fromWarehouseId, serialId: serial.id, type: "ADJUSTMENT", quantity: -1, reference: data.reference ?? "Μεταφορά αποθήκης", notes: data.notes ?? "Μεταφορά μεταξύ αποθηκών" } }));
-        output.push(await tx.stockMovement.create({ data: { organizationId: data.organizationId, productId: data.productId, warehouseId: data.toWarehouseId, serialId: serial.id, type: "ADJUSTMENT", quantity: 1, reference: data.reference ?? "Μεταφορά αποθήκης", notes: data.notes ?? "Μεταφορά μεταξύ αποθηκών" } }));
+        output.push(await tx.stockMovement.create({ data: { organizationId: data.organizationId, productId: data.productId, warehouseId: data.fromWarehouseId, serialId: serial.id, type: "TRANSFER_OUT", quantity: -1, reference: data.reference ?? "Μεταφορά αποθήκης", notes: data.notes ?? "Μεταφορά μεταξύ αποθηκών" } }));
+        output.push(await tx.stockMovement.create({ data: { organizationId: data.organizationId, productId: data.productId, warehouseId: data.toWarehouseId, serialId: serial.id, type: "TRANSFER_IN", quantity: 1, reference: data.reference ?? "Μεταφορά αποθήκης", notes: data.notes ?? "Μεταφορά μεταξύ αποθηκών" } }));
       }
       return output;
     });
