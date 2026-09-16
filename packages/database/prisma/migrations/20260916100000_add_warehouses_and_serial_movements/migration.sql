@@ -1,3 +1,6 @@
+ALTER TYPE "StockMovementType" ADD VALUE IF NOT EXISTS 'TRANSFER_OUT';
+ALTER TYPE "StockMovementType" ADD VALUE IF NOT EXISTS 'TRANSFER_IN';
+
 CREATE TABLE "warehouses" (
     "id" TEXT NOT NULL,
     "organization_id" TEXT NOT NULL,
