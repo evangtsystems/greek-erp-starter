@@ -567,6 +567,7 @@ export default function Home() {
       headers: adminHeaders(),
       body: JSON.stringify({
         organizationId: selectedOrganizationId,
+        warehouseId: form.get("warehouseId") || null,
         supplierId: form.get("supplierId"),
         documentNumber: form.get("documentNumber"),
         documentType: form.get("documentType") || "14.1",
@@ -1256,6 +1257,7 @@ export default function Home() {
           <Panel title="Καταχώριση Αγοράς / Εξόδου" icon={<ShoppingCart size={19} />} id="purchases-form">
             <form className="form-grid" onSubmit={(event) => runAction(() => createPurchase(event), "Η αγορά καταχωρήθηκε και ενημερώθηκε το απόθεμα")}>
               <label>Προμηθευτής<select name="supplierId" value={selectedSupplierId} onChange={(event) => setSelectedSupplierId(event.target.value)} required><option value="" disabled>Επιλογή προμηθευτή</option>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}{s.vatNumber ? ` (${s.vatNumber})` : ""}</option>)}</select></label>
+              <label>Παραλαβή σε αποθήκη<select name="warehouseId" value={movementWarehouseId} onChange={(event) => setMovementWarehouseId(event.target.value)}><option value="">Κεντρική αποθήκη</option>{warehouses.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>[{item.code}] {item.name}</option>)}</select></label>
               <label>Αρ. Παραστατικού<input name="documentNumber" placeholder="π.χ. ΤΠ-10492" required /></label>
               <label>Είδος αποθήκης<select value={purchaseProductId} onChange={(event) => { setPurchaseProductId(event.target.value); const found = products.find(p => p.id === event.target.value); if (found) { setPurchaseDescription(found.name); setPurchaseUnitPrice(Number(found.unitPrice)); setPurchaseVatRate(Number(found.vatRate)); } }}><option value="">Γενικό έξοδο / Χωρίς είδος</option>{products.map((p) => <option key={p.id} value={p.id}>{p.code ? `[${p.code}] ` : ""}{p.name}</option>)}</select></label>
               <label className="wide">Περιγραφή<input value={purchaseDescription} onChange={(event) => setPurchaseDescription(event.target.value)} placeholder="π.χ. Αγορά εξοπλισμού / εμπορεύματος" required /></label>
