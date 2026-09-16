@@ -656,6 +656,24 @@ export default function Home() {
     await Promise.all([loadInventory(selectedOrganizationId), loadTenantData(selectedOrganizationId)]);
   };
 
+  const createWarehouse = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await api<Warehouse>("/warehouses", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        organizationId: selectedOrganizationId,
+        code: form.get("code"),
+        name: form.get("name"),
+        address: form.get("address") || null,
+        active: true
+      })
+    });
+    event.currentTarget.reset();
+    await loadInventory(selectedOrganizationId);
+  };
+
   const createSeries = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -1253,6 +1271,16 @@ export default function Home() {
               <label>Επόμενος αριθμός<input name="nextNumber" type="number" min="1" defaultValue="1" required /></label>
               <button className="wide" disabled={busy || !selectedOrganizationId}>Αποθήκευση σειράς</button>
             </form>
+          </Panel>
+
+          <Panel title="Αποθήκες" icon={<Boxes size={19} />} id="warehouses">
+            <form className="form-grid" onSubmit={(event) => runAction(() => createWarehouse(event), "Η αποθήκη δημιουργήθηκε")}>
+              <label>Κωδικός<input name="code" maxLength={20} placeholder="π.χ. SHOP" required /></label>
+              <label>Ονομασία<input name="name" placeholder="π.χ. Αποθήκη καταστήματος" required /></label>
+              <label className="wide">Διεύθυνση <small>(προαιρετικό)</small><input name="address" placeholder="π.χ. Κεντρικό κατάστημα" /></label>
+              <button className="wide" disabled={busy || !selectedOrganizationId || !authenticated}>Προσθήκη αποθήκης</button>
+            </form>
+            <div className="chip-row">{warehouses.map((item) => <span className="chip" key={item.id}>[{item.code}] {item.name}</span>)}</div>
           </Panel>
 
           <Panel title="Κίνηση Αποθήκης" icon={<PackagePlus size={19} />} id="inventory-form">
