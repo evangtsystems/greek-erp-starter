@@ -1257,13 +1257,15 @@ export default function Home() {
 
           <Panel title="Κίνηση Αποθήκης" icon={<PackagePlus size={19} />} id="inventory-form">
             <form className="form-grid" onSubmit={(event) => runAction(() => createStockMovement(event), "Η κίνηση αποθήκης καταχωρήθηκε")}>
+              <label>Αποθήκη<select name="warehouseId" value={movementWarehouseId} onChange={(event) => setMovementWarehouseId(event.target.value)} required><option value="" disabled>Επιλογή αποθήκης</option>{warehouses.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>[{item.code}] {item.name}</option>)}</select></label>
               <label>Είδος<select name="productId" value={movementProductId} onChange={(event) => setMovementProductId(event.target.value)} required><option value="" disabled>Επιλογή είδους</option>{products.map((p) => <option key={p.id} value={p.id}>{p.code ? `[${p.code}] ` : ""}{p.name}</option>)}</select></label>
               <label>Τύπος κίνησης<select name="type" value={movementType} onChange={(event) => setMovementType(event.target.value as any)}><option value="RECEIPT">📦 Παραλαβή / Αγορά (+)</option><option value="INITIAL">📥 Αρχικό Απόθεμα (+)</option><option value="ADJUSTMENT">⚖️ Διόρθωση Απογραφής (+/-)</option><option value="SALE">📤 Χειροκίνητη Έξοδος (-)</option><option value="RETURN">🔄 Επιστροφή (+)</option></select></label>
               <label>Ποσότητα<input name="quantity" type="number" step="0.01" defaultValue="1" required /></label>
               <label>Κόστος μονάδας (€)<input name="unitCost" type="number" step="0.01" min="0" placeholder="Προαιρετικό" /></label>
+              <label className="wide">Serial numbers <small>(ένας ανά γραμμή ή με κόμμα, μόνο για είδη με serial)</small><textarea name="serialNumbers" rows={3} placeholder="π.χ. SN-001&#10;SN-002" /></label>
               <label className="wide">Σχετικό Παραστατικό / Reference<input name="reference" placeholder="π.χ. ΤΙΜ-ΑΓΟΡΑΣ-0142 ή Απογραφή 2026" /></label>
               <label className="wide">Σημειώσεις / Αιτιολογία<input name="notes" placeholder="π.χ. Επανέλεγχος ραφιού" /></label>
-              <button className="wide" disabled={busy || !selectedOrganizationId || !authenticated || !products.length}>Καταχώριση κίνησης</button>
+              <button className="wide" disabled={busy || !selectedOrganizationId || !authenticated || !products.length || !warehouses.length}>Καταχώριση κίνησης</button>
             </form>
           </Panel>
 
