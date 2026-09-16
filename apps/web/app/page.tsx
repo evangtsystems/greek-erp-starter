@@ -567,7 +567,7 @@ export default function Home() {
       headers: adminHeaders(),
       body: JSON.stringify({
         organizationId: selectedOrganizationId,
-        warehouseId: form.get("warehouseId") || null,
+        warehouseId: form.get("warehouseId") || undefined,
         supplierId: form.get("supplierId"),
         documentNumber: form.get("documentNumber"),
         documentType: form.get("documentType") || "14.1",
