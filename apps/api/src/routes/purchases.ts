@@ -12,6 +12,7 @@ const organizationQuerySchema = z.object({
 
 const createPurchaseSchema = z.object({
   organizationId: z.string().uuid(),
+  warehouseId: z.string().uuid().optional(),
   supplierId: z.string().uuid(),
   documentNumber: z.string().trim().min(1),
   documentType: z.string().trim().default("14.1"),
@@ -69,6 +70,11 @@ purchaseRouter.post("/", async (req, res) => {
       if (!supplier) {
         throw new Error("Ο προμηθευτής δεν βρέθηκε για την επιλεγμένη επιχείρηση");
       }
+
+      const warehouse = data.warehouseId
+        ? await tx.warehouse.findFirst({ where: { id: data.warehouseId, organizationId: data.organizationId, active: true } })
+        : await tx.warehouse.findFirst({ where: { organizationId: data.organizationId, code: "MAIN", active: true } });
+      if (!warehouse) throw new Error("Δεν βρέθηκε ενεργή αποθήκη για την παραλαβή.");
 
       // Check unique document number for this supplier
       const existing = await tx.purchaseInvoice.findUnique({
@@ -137,6 +143,7 @@ purchaseRouter.post("/", async (req, res) => {
           await tx.stockMovement.create({
             data: {
               organizationId: data.organizationId,
+              warehouseId: warehouse.id,
               productId: line.productId,
               type: "RECEIPT",
               quantity: Math.abs(Number(line.quantity)),
