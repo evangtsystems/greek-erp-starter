@@ -108,6 +108,7 @@ model Organization {
   products     Product[]
   productFamilies ProductFamily[]
   productCategories ProductCategory[]
+  warehouses   Warehouse[]
   stockSerials StockSerial[]
   stockMovements StockMovement[]
   invoiceSeries InvoiceSeries[]
@@ -260,10 +261,30 @@ model Product {
   @@map("products")
 }
 
+model Warehouse {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  code           String
+  name           String
+  address        String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stockSerials   StockSerial[]
+  stockMovements StockMovement[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, active])
+  @@map("warehouses")
+}
+
 model StockSerial {
   id String @id @default(uuid())
   organizationId String @map("organization_id")
   productId String @map("product_id")
+  warehouseId String @map("warehouse_id")
   serialNumber String @map("serial_number")
   status SerialStatus @default(AVAILABLE)
   notes String?
@@ -271,8 +292,11 @@ model StockSerial {
   updatedAt DateTime @updatedAt @map("updated_at")
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  movements StockMovement[]
   @@unique([organizationId, serialNumber])
   @@index([productId, status])
+  @@index([warehouseId, status])
   @@map("stock_serials")
 }
 
@@ -280,6 +304,8 @@ model StockMovement {
   id             String            @id @default(uuid())
   organizationId String            @map("organization_id")
   productId      String            @map("product_id")
+  warehouseId    String            @map("warehouse_id")
+  serialId       String?           @map("serial_id")
   type           StockMovementType
   quantity       Decimal           @db.Decimal(15, 4)
   unitCost       Decimal?          @db.Decimal(15, 4) @map("unit_cost")
@@ -289,8 +315,12 @@ model StockMovement {
 
   organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   product        Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse      Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  serial         StockSerial?      @relation(fields: [serialId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, productId])
+  @@index([warehouseId, productId])
+  @@index([serialId])
   @@index([organizationId, createdAt])
   @@map("stock_movements")
 }
