@@ -203,12 +203,16 @@ invoiceRouter.post("/:id/issue-local", async (req, res) => {
         include: { lines: true, customer: true, series: true }
       });
 
+      const warehouse = await tx.warehouse.findFirst({ where: { organizationId, code: "MAIN", active: true } });
+      if (!warehouse) throw new Error("Δεν βρέθηκε η κεντρική αποθήκη.");
+
       // Automatic stock deduction for items linked to products
       for (const line of updated.lines) {
         if (line.productId) {
           await tx.stockMovement.create({
             data: {
               organizationId,
+              warehouseId: warehouse.id,
               productId: line.productId,
               type: "SALE",
               quantity: -Math.abs(Number(line.quantity)),
@@ -280,12 +284,16 @@ invoiceRouter.post("/:id/cancel", async (req, res) => {
         include: { series: true, lines: true, customer: true }
       });
 
+      const warehouse = await tx.warehouse.findFirst({ where: { organizationId, code: "MAIN", active: true } });
+      if (!warehouse) throw new Error("Δεν βρέθηκε η κεντρική αποθήκη.");
+
       // Restore stock for all lines linked to products
       for (const line of invoice.lines) {
         if (line.productId) {
           await tx.stockMovement.create({
             data: {
               organizationId,
+              warehouseId: warehouse.id,
               productId: line.productId,
               type: "RETURN",
               quantity: Math.abs(Number(line.quantity)),
@@ -424,12 +432,16 @@ invoiceRouter.post("/:id/credit-note", async (req, res) => {
         include: { lines: true, customer: true, series: true, creditedInvoice: true }
       });
 
+      const warehouse = await tx.warehouse.findFirst({ where: { organizationId, code: "MAIN", active: true } });
+      if (!warehouse) throw new Error("Δεν βρέθηκε η κεντρική αποθήκη.");
+
       // Restore stock for product lines
       for (const line of original.lines) {
         if (line.productId) {
           await tx.stockMovement.create({
             data: {
               organizationId,
+              warehouseId: warehouse.id,
               productId: line.productId,
               type: "RETURN",
               quantity: Math.abs(Number(line.quantity)),
