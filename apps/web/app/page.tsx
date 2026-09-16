@@ -44,6 +44,7 @@ type Customer = { id: string; name: string; vatNumber: string | null };
 type Supplier = { id: string; name: string; vatNumber: string | null; email?: string | null; phone?: string | null; address?: string | null; city?: string | null };
 type Product = { id: string; code: string | null; name: string; description: string | null; unitPrice: string; vatRate: string; classificationType?: string | null; classificationCategory?: string | null; categoryId?: string | null; trackSerialNumbers?: boolean };
 type StockSerial = { id: string; serialNumber: string; status: "AVAILABLE" | "RESERVED" | "SOLD" | "RETURNED" | "IN_REPAIR"; notes?: string | null };
+type Warehouse = { id: string; code: string; name: string; address?: string | null; active: boolean };
 type ProductCategory = { id: string; name: string; products: (Product & { serials: StockSerial[] })[] };
 type ProductFamily = { id: string; name: string; categories: ProductCategory[] };
 type InvoiceSeries = { id: string; code: string; documentType: string; nextNumber: number; providerBillingBookId?: string | null };
@@ -301,6 +302,8 @@ export default function Home() {
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [stockBalances, setStockBalances] = useState<StockBalance[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [movementWarehouseId, setMovementWarehouseId] = useState("");
   const [movementProductId, setMovementProductId] = useState("");
   const [movementType, setMovementType] = useState<"RECEIPT" | "INITIAL" | "ADJUSTMENT" | "SALE" | "RETURN">("RECEIPT");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -381,12 +384,15 @@ export default function Home() {
 
   const loadInventory = async (organizationId: string) => {
     if (!organizationId) return;
-    const [balancesData, movementsData] = await Promise.all([
+    const [balancesData, movementsData, warehouseData] = await Promise.all([
       api<StockBalance[]>(`/inventory/balances?organizationId=${organizationId}`),
-      api<StockMovement[]>(`/inventory/movements?organizationId=${organizationId}`)
+      api<StockMovement[]>(`/inventory/movements?organizationId=${organizationId}`),
+      api<Warehouse[]>(`/warehouses?organizationId=${organizationId}`)
     ]);
     setStockBalances(balancesData);
     setStockMovements(movementsData);
+    setWarehouses(warehouseData);
+    setMovementWarehouseId((current) => current || warehouseData.find((item) => item.code === "MAIN")?.id || warehouseData[0]?.id || "");
     setMovementProductId((current) => current || balancesData[0]?.id || "");
   };
 
@@ -636,12 +642,14 @@ export default function Home() {
       headers: adminHeaders(),
       body: JSON.stringify({
         organizationId: selectedOrganizationId,
+        warehouseId: form.get("warehouseId"),
         productId: form.get("productId"),
         type: form.get("type"),
         quantity: Number(form.get("quantity")),
         unitCost: form.get("unitCost") ? Number(form.get("unitCost")) : null,
         reference: form.get("reference") || null,
-        notes: form.get("notes") || null
+        notes: form.get("notes") || null,
+        serialNumbers: String(form.get("serialNumbers") || "").split(/[\\n,]/).map((value) => value.trim()).filter(Boolean)
       })
     });
     event.currentTarget.reset();
