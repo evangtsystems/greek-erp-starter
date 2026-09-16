@@ -41,12 +41,6 @@ function signedQuantity(type: z.infer<typeof createMovementSchema>["type"], quan
   return quantity;
 }
 
-async function assertWarehouse(organizationId: string, warehouseId: string) {
-  const warehouse = await prisma.warehouse.findFirst({ where: { id: warehouseId, organizationId, active: true } });
-  if (!warehouse) throw new Error("Η αποθήκη δεν βρέθηκε ή δεν είναι ενεργή.");
-  return warehouse;
-}
-
 // GET /api/inventory/balances - Products with balances, optionally per warehouse
 inventoryRouter.get("/balances", async (req, res) => {
   const parsed = organizationQuerySchema.safeParse(req.query);
