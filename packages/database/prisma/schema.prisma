@@ -65,6 +65,8 @@ enum StockMovementType {
   SALE
   ADJUSTMENT
   RETURN
+  TRANSFER_OUT
+  TRANSFER_IN
 }
 
 enum PaymentType {
