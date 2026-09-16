@@ -222,7 +222,7 @@ type StockMovement = {
   id: string;
   organizationId: string;
   productId: string;
-  type: "INITIAL" | "RECEIPT" | "SALE" | "ADJUSTMENT" | "RETURN";
+  type: "INITIAL" | "RECEIPT" | "SALE" | "ADJUSTMENT" | "RETURN" | "TRANSFER_OUT" | "TRANSFER_IN";
   quantity: string | number;
   unitCost: string | number | null;
   reference: string | null;
