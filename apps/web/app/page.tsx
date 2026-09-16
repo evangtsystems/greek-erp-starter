@@ -656,6 +656,27 @@ export default function Home() {
     await Promise.all([loadInventory(selectedOrganizationId), loadTenantData(selectedOrganizationId)]);
   };
 
+  const transferStock = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await api<StockMovement[]>("/inventory/transfers", {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        organizationId: selectedOrganizationId,
+        productId: form.get("productId"),
+        fromWarehouseId: form.get("fromWarehouseId"),
+        toWarehouseId: form.get("toWarehouseId"),
+        quantity: Number(form.get("quantity")),
+        reference: form.get("reference") || null,
+        notes: form.get("notes") || null,
+        serialNumbers: String(form.get("serialNumbers") || "").split(/[\\n,]/).map((value) => value.trim()).filter(Boolean)
+      })
+    });
+    event.currentTarget.reset();
+    await loadInventory(selectedOrganizationId);
+  };
+
   const createWarehouse = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -1294,6 +1315,19 @@ export default function Home() {
               <label className="wide">Σχετικό Παραστατικό / Reference<input name="reference" placeholder="π.χ. ΤΙΜ-ΑΓΟΡΑΣ-0142 ή Απογραφή 2026" /></label>
               <label className="wide">Σημειώσεις / Αιτιολογία<input name="notes" placeholder="π.χ. Επανέλεγχος ραφιού" /></label>
               <button className="wide" disabled={busy || !selectedOrganizationId || !authenticated || !products.length || !warehouses.length}>Καταχώριση κίνησης</button>
+            </form>
+          </Panel>
+
+          <Panel title="Μεταφορά μεταξύ αποθηκών" icon={<ArrowRight size={19} />} id="stock-transfer">
+            <form className="form-grid" onSubmit={(event) => runAction(() => transferStock(event), "Η μεταφορά αποθέματος ολοκληρώθηκε")}>
+              <label>Είδος<select name="productId" defaultValue={movementProductId} required><option value="" disabled>Επιλογή είδους</option>{products.map((item) => <option key={item.id} value={item.id}>{item.code ? `[${item.code}] ` : ""}{item.name}</option>)}</select></label>
+              <label>Από αποθήκη<select name="fromWarehouseId" defaultValue={movementWarehouseId} required><option value="" disabled>Επιλογή αποθήκης</option>{warehouses.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>[{item.code}] {item.name}</option>)}</select></label>
+              <label>Προς αποθήκη<select name="toWarehouseId" required><option value="" disabled>Επιλογή αποθήκης</option>{warehouses.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>[{item.code}] {item.name}</option>)}</select></label>
+              <label>Ποσότητα<input name="quantity" type="number" min="1" step="1" defaultValue="1" required /></label>
+              <label className="wide">Serial numbers <small>(υποχρεωτικά για serialised είδη)</small><textarea name="serialNumbers" rows={3} placeholder="Ένας αριθμός ανά γραμμή ή με κόμμα" /></label>
+              <label>Αναφορά<input name="reference" placeholder="π.χ. ΜΕΤ-0001" /></label>
+              <label>Σημειώσεις<input name="notes" placeholder="Προαιρετικό" /></label>
+              <button className="wide" disabled={busy || !selectedOrganizationId || !authenticated || warehouses.length < 2}>Μεταφορά αποθέματος</button>
             </form>
           </Panel>
 
