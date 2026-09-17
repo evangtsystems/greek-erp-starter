@@ -11,6 +11,7 @@ import { organizationRouter } from "./routes/organizations.js";
 import { productRouter } from "./routes/products.js";
 import { providerCredentialRouter } from "./routes/provider-credentials.js";
 import { vatRouter } from "./routes/vat.js";
+import { gemiRouter } from "./routes/gemi.js";
 import { wrappRouter } from "./routes/wrapp.js";
 import { warehouseRouter } from "./routes/warehouses.js";
 import { inventoryRouter } from "./routes/inventory.js";
@@ -50,6 +51,7 @@ app.use("/api/imports", megasoftImportRouter);
 app.use("/api/invoice-series", invoiceSeriesRouter);
 app.use("/api/provider-credentials", providerCredentialRouter);
 app.use("/api/vat", vatRouter);
+app.use("/api/gemi", gemiRouter);
 app.use("/api/wrapp", wrappRouter);
 
 const port = Number(process.env.PORT ?? 4000);
