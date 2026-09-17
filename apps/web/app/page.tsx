@@ -279,6 +279,16 @@ type GemiLookup = {
   status: string | null;
   isActive: boolean | null;
   isBranch: boolean | null;
+  branches: Array<{
+    arGemi: string;
+    name: string | null;
+    address: string | null;
+    city: string | null;
+    postalCode: string | null;
+    email: string | null;
+    active: boolean | null;
+  }>;
+  branchesTruncated: boolean;
   cached?: boolean;
 };
 
@@ -1284,6 +1294,17 @@ export default function Home() {
                     ? `${customerGemiLookup.name || "Επιχείρηση"}${customerGemiLookup.address ? ` · ${customerGemiLookup.address}` : ""}${customerGemiLookup.city ? `, ${customerGemiLookup.city}` : ""}`
                     : "Δεν βρέθηκε επιχείρηση με αυτό το ΑΦΜ."}
                   {customerGemiLookup.valid && customerGemiLookup.isBranch ? " · Υποκατάστημα" : ""}
+                  {customerGemiLookup.branches.length > 0 ? (
+                    <div style={{ marginTop: 8, display: "grid", gap: 4 }}>
+                      <strong>Υποκαταστήματα ({customerGemiLookup.branches.length}):</strong>
+                      {customerGemiLookup.branches.map((branch) => (
+                        <span key={branch.arGemi}>
+                          {branch.name || "Υποκατάστημα"} · {branch.address || "—"}{branch.city ? `, ${branch.city}` : ""} · ΓΕΜΗ {branch.arGemi}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {customerGemiLookup.branchesTruncated ? <div style={{ marginTop: 6 }}>Η λίστα περιορίστηκε προσωρινά λόγω ορίου ΓΕΜΗ.</div> : null}
                 </div>
               ) : vatLookup ? (
                 <div className={`lookup ${vatLookup.valid ? "valid" : "invalid"}`}>
@@ -1310,6 +1331,17 @@ export default function Home() {
                     ? `${supplierGemiLookup.name || "Επιχείρηση"}${supplierGemiLookup.address ? ` · ${supplierGemiLookup.address}` : ""}${supplierGemiLookup.city ? `, ${supplierGemiLookup.city}` : ""}`
                     : "Δεν βρέθηκε επιχείρηση με αυτό το ΑΦΜ."}
                   {supplierGemiLookup.valid && supplierGemiLookup.isBranch ? " · Υποκατάστημα" : ""}
+                  {supplierGemiLookup.branches.length > 0 ? (
+                    <div style={{ marginTop: 8, display: "grid", gap: 4 }}>
+                      <strong>Υποκαταστήματα ({supplierGemiLookup.branches.length}):</strong>
+                      {supplierGemiLookup.branches.map((branch) => (
+                        <span key={branch.arGemi}>
+                          {branch.name || "Υποκατάστημα"} · {branch.address || "—"}{branch.city ? `, ${branch.city}` : ""} · ΓΕΜΗ {branch.arGemi}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {supplierGemiLookup.branchesTruncated ? <div style={{ marginTop: 6 }}>Η λίστα περιορίστηκε προσωρινά λόγω ορίου ΓΕΜΗ.</div> : null}
                 </div>
               ) : supplierVatLookup ? (
                 <div className={`lookup ${supplierVatLookup.valid ? "valid" : "invalid"}`}>
