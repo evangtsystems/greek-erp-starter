@@ -24,6 +24,17 @@ type GemiCompany = {
   legalType?: { descr?: string };
   gemiOffice?: { descr?: string };
   status?: { descr?: string; isActive?: boolean };
+  branch?: Array<number | string>;
+};
+
+type GemiBranch = {
+  arGemi: string;
+  name: string | null;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  email: string | null;
+  active: boolean | null;
 };
 
 type GemiResult = {
@@ -43,6 +54,8 @@ type GemiResult = {
   status: string | null;
   isActive: boolean | null;
   isBranch: boolean | null;
+  branches: GemiBranch[];
+  branchesTruncated: boolean;
 };
 
 const cache = new Map<string, { expiresAt: number; value: GemiResult }>();
@@ -73,7 +86,9 @@ function emptyResult(vatNumber: string): GemiResult {
     legalType: null,
     status: null,
     isActive: null,
-    isBranch: null
+    isBranch: null,
+    branches: [],
+    branchesTruncated: false
   };
 }
 
@@ -99,7 +114,27 @@ function buildResult(vatNumber: string, company: GemiCompany): GemiResult {
     legalType: company.legalType?.descr?.trim() || null,
     status: company.status?.descr?.trim() || null,
     isActive: typeof company.status?.isActive === "boolean" ? company.status.isActive : null,
-    isBranch: typeof company.isBranch === "boolean" ? company.isBranch : null
+    isBranch: typeof company.isBranch === "boolean" ? company.isBranch : null,
+    branches: [],
+    branchesTruncated: false
+  };
+}
+
+function toBranch(company: GemiCompany): GemiBranch | null {
+  if (company.arGemi == null) return null;
+  const address = [company.street, company.streetNumber]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
+
+  return {
+    arGemi: String(company.arGemi),
+    name: company.coNameEl?.trim() || null,
+    address: address || null,
+    city: company.city?.trim() || null,
+    postalCode: company.zipCode?.trim() || null,
+    email: company.email?.trim() || null,
+    active: typeof company.status?.isActive === "boolean" ? company.status.isActive : null
   };
 }
 
@@ -180,6 +215,27 @@ gemiRouter.get("/company", requireErpAdmin, async (req, res) => {
       ?? payload.searchResults?.[0];
 
     const value = company ? buildResult(vatNumber, company) : emptyResult(vatNumber);
+
+    // The parent company contains the GEMI numbers of its branches. Load a bounded
+    // number of them so one lookup never exceeds the provider's 8 req/min limit.
+    const branchIds = Array.from(new Set((company?.branch || []).map(String))).filter(Boolean);
+    const maximumBranchesPerLookup = Math.max(0, requestLimit - requestTimestamps.length);
+
+    for (const arGemi of branchIds.slice(0, maximumBranchesPerLookup)) {
+      const branchSlot = consumeRequestSlot();
+      if (!branchSlot.allowed) break;
+
+      const branchResponse = await fetch(`${baseUrl}/companies/${encodeURIComponent(arGemi)}`, {
+        headers: { api_key: apiKey, Accept: "application/json" },
+        signal: AbortSignal.timeout(12_000)
+      });
+
+      if (!branchResponse.ok) continue;
+      const branch = toBranch(await branchResponse.json() as GemiCompany);
+      if (branch) value.branches.push(branch);
+    }
+
+    value.branchesTruncated = branchIds.length > value.branches.length;
     cache.set(vatNumber, { value, expiresAt: Date.now() + cacheTtlMs });
     res.json({ ...value, cached: false });
   } catch (error) {
