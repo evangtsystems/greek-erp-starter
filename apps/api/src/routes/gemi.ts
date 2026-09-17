@@ -211,13 +211,28 @@ gemiRouter.get("/company", requireErpAdmin, async (req, res) => {
     }
 
     const payload = await response.json() as { searchResults?: GemiCompany[] };
-    const company = payload.searchResults?.find((item) => normalizeVat(String(item.afm || "")) === vatNumber)
+    let company = payload.searchResults?.find((item) => normalizeVat(String(item.afm || "")) === vatNumber)
       ?? payload.searchResults?.[0];
+
+    // The search result is intentionally lightweight. The complete record of the
+    // head office is where GEMI exposes the branch references.
+    if (company?.arGemi != null) {
+      const detailSlot = consumeRequestSlot();
+      if (detailSlot.allowed) {
+        const detailResponse = await fetch(`${baseUrl}/companies/${encodeURIComponent(String(company.arGemi))}`, {
+          headers: { api_key: apiKey, Accept: "application/json" },
+          signal: AbortSignal.timeout(12_000)
+        });
+        if (detailResponse.ok) {
+          company = await detailResponse.json() as GemiCompany;
+        }
+      }
+    }
 
     const value = company ? buildResult(vatNumber, company) : emptyResult(vatNumber);
 
-    // The parent company contains the GEMI numbers of its branches. Load a bounded
-    // number of them so one lookup never exceeds the provider's 8 req/min limit.
+    // The complete head-office record contains the GEMI numbers of its branches.
+    // Load a bounded number so one lookup never exceeds the provider's 8 req/min limit.
     const branchIds = Array.from(new Set((company?.branch || []).map(String))).filter(Boolean);
     const maximumBranchesPerLookup = Math.max(0, requestLimit - requestTimestamps.length);
 
