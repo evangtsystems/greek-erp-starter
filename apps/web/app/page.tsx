@@ -262,6 +262,26 @@ type VatLookup = {
   vatNumber: string;
 };
 
+type GemiLookup = {
+  source: "GEMI";
+  valid: boolean;
+  vatNumber: string;
+  arGemi: string | null;
+  name: string | null;
+  title: string | null;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  email: string | null;
+  website: string | null;
+  gemiOffice: string | null;
+  legalType: string | null;
+  status: string | null;
+  isActive: boolean | null;
+  isBranch: boolean | null;
+  cached?: boolean;
+};
+
 const api = async <T,>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`/erp-api${path}`, {
     credentials: "same-origin",
@@ -289,6 +309,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [vatLookup, setVatLookup] = useState<VatLookup | null>(null);
+  const [customerGemiLookup, setCustomerGemiLookup] = useState<GemiLookup | null>(null);
   const [customerName, setCustomerName] = useState("Acme Greek Customer");
   const [customerVat, setCustomerVat] = useState("099999999");
   const [authenticated, setAuthenticated] = useState(false);
@@ -312,6 +333,7 @@ export default function Home() {
   const [supplierName, setSupplierName] = useState("Alpha Wholesale Supplier");
   const [supplierVat, setSupplierVat] = useState("");
   const [supplierVatLookup, setSupplierVatLookup] = useState<VatLookup | null>(null);
+  const [supplierGemiLookup, setSupplierGemiLookup] = useState<GemiLookup | null>(null);
   const [purchaseProductId, setPurchaseProductId] = useState("");
   const [purchaseDescription, setPurchaseDescription] = useState("");
   const [purchaseUnitPrice, setPurchaseUnitPrice] = useState(50);
@@ -519,6 +541,14 @@ export default function Home() {
     if (result.name) setCustomerName(result.name);
   };
 
+  const lookupCustomerGemi = async () => {
+    const result = await api<GemiLookup>(`/gemi/company?vatNumber=${encodeURIComponent(customerVat)}`, {
+      headers: adminHeaders()
+    });
+    setCustomerGemiLookup(result);
+    if (result.name) setCustomerName(result.name);
+  };
+
   const createCustomer = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     await api<Customer>("/customers", {
@@ -528,6 +558,10 @@ export default function Home() {
         type: "BUSINESS",
         name: customerName,
         vatNumber: customerVat || null,
+        address: customerGemiLookup?.address || null,
+        city: customerGemiLookup?.city || null,
+        postalCode: customerGemiLookup?.postalCode || null,
+        email: customerGemiLookup?.email || null,
         country: "GR"
       })
     });
@@ -543,6 +577,14 @@ export default function Home() {
     if (result.name) setSupplierName(result.name);
   };
 
+  const lookupSupplierGemi = async () => {
+    const result = await api<GemiLookup>(`/gemi/company?vatNumber=${encodeURIComponent(supplierVat)}`, {
+      headers: adminHeaders()
+    });
+    setSupplierGemiLookup(result);
+    if (result.name) setSupplierName(result.name);
+  };
+
   const createSupplier = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     await api<Supplier>("/suppliers", {
@@ -552,6 +594,10 @@ export default function Home() {
         organizationId: selectedOrganizationId,
         name: supplierName,
         vatNumber: supplierVat || null,
+        address: supplierGemiLookup?.address || null,
+        city: supplierGemiLookup?.city || null,
+        postalCode: supplierGemiLookup?.postalCode || null,
+        email: supplierGemiLookup?.email || null,
         country: "GR"
       })
     });
@@ -1224,14 +1270,24 @@ export default function Home() {
 
           <Panel title="Πελάτης" icon={<Users size={19} />} id="customers">
             <form className="form-grid" onSubmit={(event) => runAction(() => createCustomer(event), "Ο πελάτης αποθηκεύτηκε")}>
-              <label>ΑΦΜ<input value={customerVat} onChange={(event) => setCustomerVat(event.target.value)} /></label>
-              <button type="button" className="secondary" disabled={busy || !customerVat} onClick={() => runAction(lookupVat, "Ο έλεγχος ΑΦΜ ολοκληρώθηκε")}>
-                <Search size={17} />Έλεγχος
+              <label>ΑΦΜ<input value={customerVat} onChange={(event) => { setCustomerVat(event.target.value); setCustomerGemiLookup(null); }} /></label>
+              <button type="button" className="secondary" disabled={busy || !customerVat || !authenticated} onClick={() => runAction(lookupCustomerGemi, "Η αναζήτηση ΓΕΜΗ ολοκληρώθηκε")}>
+                <Building2 size={17} />ΓΕΜΗ
+              </button>
+              <button type="button" className="secondary" disabled={busy || !customerVat} onClick={() => runAction(lookupVat, "Ο έλεγχος VIES ολοκληρώθηκε")}>
+                <Search size={17} />VIES
               </button>
               <label className="wide">Επωνυμία<input value={customerName} onChange={(event) => setCustomerName(event.target.value)} required /></label>
-              {vatLookup ? (
+              {customerGemiLookup ? (
+                <div className={`lookup ${customerGemiLookup.valid ? "valid" : "invalid"}`}>
+                  <strong>ΓΕΜΗ:</strong> {customerGemiLookup.valid
+                    ? `${customerGemiLookup.name || "Επιχείρηση"}${customerGemiLookup.address ? ` · ${customerGemiLookup.address}` : ""}${customerGemiLookup.city ? `, ${customerGemiLookup.city}` : ""}`
+                    : "Δεν βρέθηκε επιχείρηση με αυτό το ΑΦΜ."}
+                  {customerGemiLookup.valid && customerGemiLookup.isBranch ? " · Υποκατάστημα" : ""}
+                </div>
+              ) : vatLookup ? (
                 <div className={`lookup ${vatLookup.valid ? "valid" : "invalid"}`}>
-                  {vatLookup.source}: {vatLookup.valid ? "valid VAT" : "not valid for VIES"}{vatLookup.address ? ` · ${vatLookup.address}` : ""}
+                  {vatLookup.source}: {vatLookup.valid ? "Έγκυρο ΑΦΜ" : "Δεν είναι έγκυρο στο VIES"}{vatLookup.address ? ` · ${vatLookup.address}` : ""}
                 </div>
               ) : null}
               <button className="wide" disabled={busy || !selectedOrganizationId}>Αποθήκευση πελάτη</button>
@@ -1240,14 +1296,24 @@ export default function Home() {
 
           <Panel title="Προμηθευτής" icon={<Truck size={19} />} id="suppliers">
             <form className="form-grid" onSubmit={(event) => runAction(() => createSupplier(event), "Ο προμηθευτής αποθηκεύτηκε")}>
-              <label>ΑΦΜ<input value={supplierVat} onChange={(event) => setSupplierVat(event.target.value)} /></label>
-              <button type="button" className="secondary" disabled={busy || !supplierVat} onClick={() => runAction(lookupSupplierVat, "Ο έλεγχος ΑΦΜ προμηθευτή ολοκληρώθηκε")}>
-                <Search size={17} />Έλεγχος
+              <label>ΑΦΜ<input value={supplierVat} onChange={(event) => { setSupplierVat(event.target.value); setSupplierGemiLookup(null); }} /></label>
+              <button type="button" className="secondary" disabled={busy || !supplierVat || !authenticated} onClick={() => runAction(lookupSupplierGemi, "Η αναζήτηση ΓΕΜΗ προμηθευτή ολοκληρώθηκε")}>
+                <Building2 size={17} />ΓΕΜΗ
+              </button>
+              <button type="button" className="secondary" disabled={busy || !supplierVat} onClick={() => runAction(lookupSupplierVat, "Ο έλεγχος VIES προμηθευτή ολοκληρώθηκε")}>
+                <Search size={17} />VIES
               </button>
               <label className="wide">Επωνυμία<input value={supplierName} onChange={(event) => setSupplierName(event.target.value)} required /></label>
-              {supplierVatLookup ? (
+              {supplierGemiLookup ? (
+                <div className={`lookup ${supplierGemiLookup.valid ? "valid" : "invalid"}`}>
+                  <strong>ΓΕΜΗ:</strong> {supplierGemiLookup.valid
+                    ? `${supplierGemiLookup.name || "Επιχείρηση"}${supplierGemiLookup.address ? ` · ${supplierGemiLookup.address}` : ""}${supplierGemiLookup.city ? `, ${supplierGemiLookup.city}` : ""}`
+                    : "Δεν βρέθηκε επιχείρηση με αυτό το ΑΦΜ."}
+                  {supplierGemiLookup.valid && supplierGemiLookup.isBranch ? " · Υποκατάστημα" : ""}
+                </div>
+              ) : supplierVatLookup ? (
                 <div className={`lookup ${supplierVatLookup.valid ? "valid" : "invalid"}`}>
-                  {supplierVatLookup.source}: {supplierVatLookup.valid ? "valid VAT" : "not valid for VIES"}{supplierVatLookup.address ? ` · ${supplierVatLookup.address}` : ""}
+                  {supplierVatLookup.source}: {supplierVatLookup.valid ? "Έγκυρο ΑΦΜ" : "Δεν είναι έγκυρο στο VIES"}{supplierVatLookup.address ? ` · ${supplierVatLookup.address}` : ""}
                 </div>
               ) : null}
               <button className="wide" disabled={busy || !selectedOrganizationId || !authenticated}>Αποθήκευση προμηθευτή</button>
