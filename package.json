@@ -7,6 +7,9 @@
   ],
   "scripts": {
     "dev": "concurrently -n api,web -c blue,green \"npm --workspace @erp/api run dev\" \"npm --workspace @erp/web run dev\"",
+    "build": "npm --workspace @erp/web run build",
+    "start:web": "npm --workspace @erp/web run start",
+    "start:api": "npm --workspace @erp/api run start",
     "db:generate": "npm --workspace @erp/database run generate",
     "db:migrate": "npm --workspace @erp/database run migrate",
     "db:deploy": "npm --workspace @erp/database run deploy"

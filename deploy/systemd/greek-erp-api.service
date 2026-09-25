@@ -1,0 +1,15 @@
+[Unit]
+Description=Greek ERP API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/greek-erp-starter
+Environment=NODE_ENV=production
+Environment=PORT=4000
+ExecStart=/usr/bin/npm run start:api
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

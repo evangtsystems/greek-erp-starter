@@ -450,7 +450,7 @@ button.template-card:hover, button.template-card.selected {
 }
 
 .template-card span, .template-card small { color: var(--muted); font-weight: 600; }
-.template-actions { align-items: end; display: flex; flex-wrap: wrap; gap: 10px; }
+.template-actions { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 10px; }
 .template-actions label { min-width: 200px; }
 
 .command-strip {
