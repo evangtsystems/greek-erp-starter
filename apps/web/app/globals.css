@@ -425,6 +425,13 @@ nav a:hover {
 .template-panel h2 { margin: 0; font-size: 20px; }
 .template-panel p { color: var(--muted); margin: 6px 0 0; }
 
+.quick-issue-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
 .template-grid {
   display: grid;
   gap: 10px;
@@ -452,6 +459,15 @@ button.template-card:hover, button.template-card.selected {
 .template-card span, .template-card small { color: var(--muted); font-weight: 600; }
 .template-actions { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 10px; }
 .template-actions label { min-width: 200px; }
+.template-actions label small {
+  color: var(--accent);
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
 
 .command-strip {
   display: flex;

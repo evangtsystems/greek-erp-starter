@@ -365,6 +365,7 @@ export default function Home() {
   const [paymentTargetPurchaseId, setPaymentTargetPurchaseId] = useState("");
   const [paymentAmount, setPaymentAmount] = useState(100);
   const [paymentMethod, setPaymentMethod] = useState("BANK_TRANSFER");
+  const [invoicePaymentMethod, setInvoicePaymentMethod] = useState("BANK_TRANSFER");
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
 
@@ -609,7 +610,7 @@ export default function Home() {
 
   const createCustomer = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await api<Customer>("/customers", {
+    const customer = await api<Customer>("/customers", {
       method: "POST",
       body: JSON.stringify({
         organizationId: selectedOrganizationId,
@@ -624,6 +625,10 @@ export default function Home() {
       })
     });
     await loadTenantData(selectedOrganizationId);
+    setSelectedCustomerId(customer.id);
+    setPaymentTargetCustomerId(customer.id);
+    setQuoteCustomerId(customer.id);
+    document.getElementById("quick-issue")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const lookupSupplierVat = async () => {
@@ -885,10 +890,12 @@ export default function Home() {
         customerId: customer.id,
         seriesId: firstSeries.id,
         documentType: firstSeries.documentType,
+        paymentMethod: invoicePaymentMethod,
         lines: [{ productId: savedProduct?.id, description: savedProduct?.description || savedProduct?.name || template!.description, quantity: 1, unitPrice: savedProduct ? Number(savedProduct.unitPrice) : templatePrice, vatRate: savedProduct ? Number(savedProduct.vatRate) : template!.vatRate, vatCategory: "VAT_24", classificationType: savedProduct?.classificationType || template!.classificationType, classificationCategory: savedProduct?.classificationCategory || template!.classificationCategory }]
       })
     });
     await loadTenantData(selectedOrganizationId);
+    document.getElementById("invoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const issueWrappStaging = async (invoiceId: string) => {
@@ -1295,12 +1302,25 @@ export default function Home() {
           )}
         </section>
 
-        <section className="template-panel">
-          <div><span className="eyebrow">Γρήγορη έκδοση</span><h2>Τι θέλεις να τιμολογήσεις;</h2><p>Διάλεξε πρότυπο. Οι φορολογικές προεπιλογές συμπληρώνονται αυτόματα.</p><button className="secondary" disabled={busy || !selectedOrganizationId || !authenticated} onClick={() => runAction(addDefaultTemplates, "Τα έτοιμα πρότυπα προστέθηκαν")}><Package size={17} />Προσθήκη έτοιμων προτύπων</button></div>
+        <section className="template-panel" id="quick-issue">
+          <div className="quick-issue-header">
+            <div>
+              <span className="eyebrow">Γρήγορη έκδοση</span>
+              <h2>Δημιουργία παραστατικού σε 3 βήματα</h2>
+              <p>1. Πελάτης και σειρά · 2. Είδος ή πρότυπο · 3. Τιμή και πληρωμή. Μετά το draft θα μεταφερθείς αυτόματα στα παραστατικά.</p>
+            </div>
+            <button className="secondary" disabled={busy || !selectedOrganizationId || !authenticated} onClick={() => runAction(addDefaultTemplates, "Τα έτοιμα πρότυπα προστέθηκαν")}><Package size={17} />Προσθήκη έτοιμων προτύπων</button>
+          </div>
           <div className="template-grid">{basicTemplates.map((template) => <button type="button" key={template.id} className={selectedTemplateId === template.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedTemplateId(template.id); setSelectedProductId(""); setTemplatePrice(template.price); }}><strong>{template.title}</strong><span>{template.description}</span><small>ΦΠΑ {template.vatRate}%</small></button>)}</div>
           <label className="wide">Ιστοσελίδες και ψηφιακές υπηρεσίες<select value={webTemplates.some((template) => template.id === selectedTemplateId) ? selectedTemplateId : ""} onChange={(event) => { const template = webTemplates.find((item) => item.id === event.target.value); if (template) { setSelectedTemplateId(template.id); setSelectedProductId(""); setTemplatePrice(template.price); } }}><option value="">Επιλογή υπηρεσίας ιστοσελίδας</option>{webTemplates.map((template) => <option key={template.id} value={template.id}>{template.title} · {money(template.price)}</option>)}</select></label>
           {products.length > 0 ? <><span className="eyebrow">Τα αποθηκευμένα πρότυπά μου</span><div className="template-grid">{products.map((product) => <button type="button" key={product.id} className={selectedProductId === product.id ? "template-card selected" : "template-card"} onClick={() => { setSelectedProductId(product.id); setSelectedTemplateId(""); setTemplatePrice(Number(product.unitPrice)); }}><strong>{product.name}</strong><span>{product.description || product.code || "Πρότυπο προϊόντος/υπηρεσίας"}</span><small>ΦΠΑ {product.vatRate}%</small></button>)}</div></> : null}
-          <div className="template-actions"><label>Πελάτης<select value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)}><option value="">Επιλογή πελάτη</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label><label>Σειρά<select value={selectedSeriesId} onChange={(event) => setSelectedSeriesId(event.target.value)}><option value="">Επιλογή σειράς</option>{series.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.documentType}</option>)}</select></label><label>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label><button disabled={busy || !selectedOrganizationId || !selectedCustomerId || !selectedSeriesId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε")}><FilePlus2 size={18} />Δημιουργία draft</button></div>
+          <div className="template-actions">
+            <label><small>Βήμα 1</small>Πελάτης<select value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)}><option value="">Επιλογή πελάτη</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label>
+            <label><small>Βήμα 1</small>Σειρά<select value={selectedSeriesId} onChange={(event) => setSelectedSeriesId(event.target.value)}><option value="">Επιλογή σειράς</option>{series.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.documentType}</option>)}</select></label>
+            <label><small>Βήμα 3</small>Τρόπος πληρωμής<select value={invoicePaymentMethod} onChange={(event) => setInvoicePaymentMethod(event.target.value)}><option value="BANK_TRANSFER">Τραπεζική Κατάθεση</option><option value="CARD">Κάρτα</option><option value="CASH">Μετρητά</option><option value="IRIS">IRIS</option><option value="OTHER">Άλλο</option></select></label>
+            <label><small>Βήμα 3</small>Τιμή χωρίς ΦΠΑ<input type="number" min="0" step="0.01" value={templatePrice} onChange={(event) => setTemplatePrice(Number(event.target.value))} /></label>
+            <button disabled={busy || !selectedOrganizationId || !selectedCustomerId || !selectedSeriesId} onClick={() => runAction(createDraftInvoice, "Το πρόχειρο δημιουργήθηκε και εμφανίζεται στα παραστατικά")}><FilePlus2 size={18} />Δημιουργία draft</button>
+          </div>
         </section>
 
         <section className="command-strip">
