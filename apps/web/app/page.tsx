@@ -396,6 +396,44 @@ export default function Home() {
     return {};
   };
 
+  const clearErpData = () => {
+    setOrganizations([]);
+    setSelectedOrganizationId("");
+    setCustomers([]);
+    setProducts([]);
+    setSeries([]);
+    setInvoices([]);
+    setProviderCredentials([]);
+    setVatLookup(null);
+    setCustomerGemiLookup(null);
+    setSupplierVatLookup(null);
+    setSupplierGemiLookup(null);
+    setCatalog([]);
+    setSelectedCategoryId("");
+    setStockBalances([]);
+    setStockMovements([]);
+    setWarehouses([]);
+    setMovementWarehouseId("");
+    setMovementProductId("");
+    setSuppliers([]);
+    setPurchases([]);
+    setSelectedSupplierId("");
+    setPurchaseProductId("");
+    setVatReport(null);
+    setPayments([]);
+    setQuotes([]);
+    setOrders([]);
+    setSelectedCustomerId("");
+    setSelectedLedgerCustomerId("");
+    setCustomerLedger(null);
+    setPaymentTargetCustomerId("");
+    setPaymentTargetSupplierId("");
+    setPaymentTargetInvoiceId("");
+    setPaymentTargetPurchaseId("");
+    setQuoteCustomerId("");
+    setQuoteProductId("");
+  };
+
   const loadOrganizations = async () => {
     const data = await api<Organization[]>("/organizations");
     setOrganizations(data);
@@ -473,17 +511,27 @@ export default function Home() {
   };
 
   useEffect(() => {
-    loadOrganizations().catch((error) => setMessage(error.message));
-    api<{ authenticated: boolean }>("/auth/session").then((data) => setAuthenticated(data.authenticated)).catch(() => setAuthenticated(false));
+    api<{ authenticated: boolean }>("/auth/session")
+      .then(async (data) => {
+        setAuthenticated(data.authenticated);
+        if (data.authenticated) await loadOrganizations();
+        else clearErpData();
+      })
+      .catch(() => {
+        setAuthenticated(false);
+        clearErpData();
+      });
   }, []);
 
   useEffect(() => {
+    if (!authenticated) return;
     loadTenantData(selectedOrganizationId).catch((error) => setMessage(error.message));
-  }, [selectedOrganizationId]);
+  }, [selectedOrganizationId, authenticated]);
 
   useEffect(() => {
+    if (!authenticated) return;
     loadVatReport(selectedOrganizationId, selectedPeriod).catch(() => {});
-  }, [selectedOrganizationId, selectedPeriod]);
+  }, [selectedOrganizationId, selectedPeriod, authenticated]);
 
   const loadCatalog = async (organizationId: string) => {
     if (!organizationId || !authenticated) return;
@@ -513,13 +561,13 @@ export default function Home() {
     await api("/auth/login", { method: "POST", body: JSON.stringify({ password: loginPassword }) });
     setAuthenticated(true);
     setLoginPassword("");
-    await loadCatalog(selectedOrganizationId);
+    await loadOrganizations();
   };
 
   const logout = async () => {
     await api("/auth/logout", { method: "POST" });
     setAuthenticated(false);
-    setCatalog([]);
+    clearErpData();
   };
 
   const createOrganization = async (event: FormEvent<HTMLFormElement>) => {

@@ -5,7 +5,7 @@
 
 */
 -- AlterTable
-ALTER TABLE "invoice_series" DROP COLUMN "provider_billing_book_id";
+ALTER TABLE "invoice_series" DROP COLUMN IF EXISTS "provider_billing_book_id";
 
 -- AlterTable
 ALTER TABLE "products" ADD COLUMN     "provider_billing_book_id" TEXT;

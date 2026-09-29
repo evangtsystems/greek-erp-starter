@@ -20,6 +20,7 @@ import { purchaseRouter } from "./routes/purchases.js";
 import { paymentRouter } from "./routes/payments.js";
 import { quoteRouter } from "./routes/quotes.js";
 import { orderRouter } from "./routes/orders.js";
+import { requireErpAdmin } from "./services/erp-session.js";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.resolve(currentDir, "../../../.env"));
@@ -35,6 +36,12 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+
+app.use("/api", (req, res, next) => {
+  if (req.path === "/wrapp/webhooks/user-created") return next();
+  return requireErpAdmin(req, res, next);
+});
+
 app.use("/api/invoices", invoiceRouter);
 app.use("/api/purchases", purchaseRouter);
 app.use("/api/payments", paymentRouter);
