@@ -320,6 +320,7 @@ export default function Home() {
   const [message, setMessage] = useState("Έτοιμο");
   const [busy, setBusy] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("overview");
   const [vatLookup, setVatLookup] = useState<VatLookup | null>(null);
   const [customerGemiLookup, setCustomerGemiLookup] = useState<GemiLookup | null>(null);
   const [customerName, setCustomerName] = useState("Acme Greek Customer");
@@ -547,6 +548,42 @@ export default function Home() {
     if (!authenticated) return;
     loadVatReport(selectedOrganizationId, selectedPeriod).catch(() => {});
   }, [selectedOrganizationId, selectedPeriod, authenticated]);
+
+  useEffect(() => {
+    if (!authenticated) return;
+    const sectionGroups: Record<string, string> = {
+      overview: "overview",
+      financials: "vat",
+      customers: "customers",
+      suppliers: "customers",
+      "quick-issue": "sales",
+      "purchases-form": "purchases",
+      products: "inventory",
+      "product-form": "inventory",
+      warehouses: "inventory",
+      "inventory-form": "inventory",
+      "stock-transfer": "inventory",
+      inventory: "inventory",
+      "payment-form": "sales",
+      "quote-form": "sales",
+      ledgers: "sales",
+      "quotes-orders": "sales",
+      purchases: "purchases",
+      invoices: "documents",
+      "user-management": "team"
+    };
+    const targets = Object.keys(sectionGroups)
+      .map((id) => document.getElementById(id))
+      .filter((element): element is HTMLElement => element !== null);
+    const observer = new IntersectionObserver((entries) => {
+      const nearest = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top))[0];
+      if (nearest) setActiveSection(sectionGroups[nearest.target.id] || "overview");
+    }, { rootMargin: "-18% 0px -68% 0px", threshold: 0 });
+    targets.forEach((target) => observer.observe(target));
+    return () => observer.disconnect();
+  }, [authenticated]);
 
   const loadCatalog = async (organizationId: string) => {
     if (!organizationId || !authenticated) return;
@@ -1083,6 +1120,16 @@ export default function Home() {
   const canManageUsers = role === "ADMIN" || role === "OWNER";
   const canSeeFinance = canManageUsers || role === "ACCOUNTANT";
   const canSeeSales = canManageUsers || role === "ACCOUNTANT" || role === "CASHIER";
+  const sectionLinks = [
+    { id: "overview", target: "overview", label: "Επισκόπηση", visible: true },
+    { id: "vat", target: "financials", label: "ΦΠΑ", visible: canSeeFinance },
+    { id: "customers", target: "customers", label: "Πελάτες", visible: canSeeSales },
+    { id: "sales", target: "quick-issue", label: "Πωλήσεις", visible: canSeeSales },
+    { id: "purchases", target: "purchases", label: "Αγορές", visible: canSeeFinance },
+    { id: "inventory", target: "inventory", label: "Αποθήκη", visible: canManageUsers },
+    { id: "documents", target: "invoices", label: "Παραστατικά", visible: true },
+    { id: "team", target: "user-management", label: "Ομάδα", visible: canManageUsers }
+  ].filter((item) => item.visible);
 
   if (authLoading) {
     return <main className="erp-auth-page"><div className="erp-auth-card"><div className="brand-mark"><Landmark size={24} /></div><p className="eyebrow">Ελληνικό ERP</p><h1>Έλεγχος σύνδεσης</h1><p>Φόρτωση ασφαλούς συνεδρίας…</p></div></main>;
@@ -1268,6 +1315,20 @@ export default function Home() {
           </div>
         </header>
 
+        <nav className="section-rail" aria-label="Γρήγορη πλοήγηση στις ενότητες">
+          <span className="section-rail-label">ΕΝΟΤΗΤΕΣ</span>
+          {sectionLinks.map((item, index) => (
+            <a
+              key={item.id}
+              href={`#${item.target}`}
+              className={activeSection === item.id ? "active" : ""}
+              aria-current={activeSection === item.id ? "location" : undefined}
+            >
+              <span>{String(index + 1).padStart(2, "0")}</span>{item.label}
+            </a>
+          ))}
+        </nav>
+
         <section className="metrics">
           <Metric icon={<Users />} label="Πελάτες" value={customers.length} />
           <Metric icon={<Truck />} label="Προμηθευτές" value={suppliers.length} />
@@ -1436,6 +1497,12 @@ export default function Home() {
             </form>
           </Panel> : null}
 
+          <div className="module-divider">
+            <span className="module-index">01</span>
+            <div><span>ΜΗΤΡΩΑ</span><h2>Πελάτες & συνεργάτες</h2></div>
+            <p>Στοιχεία πελατών και προμηθευτών της ενεργής επιχείρησης.</p>
+          </div>
+
           <Panel title="Πελάτης" icon={<Users size={19} />} id="customers">
             <form className="form-grid" onSubmit={(event) => runAction(() => createCustomer(event), "Ο πελάτης αποθηκεύτηκε")}>
               <label>ΑΦΜ<input value={customerVat} onChange={(event) => { setCustomerVat(event.target.value); setCustomerGemiLookup(null); }} /></label>
@@ -1510,6 +1577,12 @@ export default function Home() {
             </form>
           </Panel>
 
+          {canSeeFinance ? <div className="module-divider">
+            <span className="module-index">02</span>
+            <div><span>ΕΞΟΔΑ</span><h2>Αγορές & δαπάνες</h2></div>
+            <p>Καταχώριση αγορών και παραστατικών εξόδων.</p>
+          </div> : null}
+
           <Panel title="Καταχώριση Αγοράς / Εξόδου" icon={<ShoppingCart size={19} />} id="purchases-form">
             <form className="form-grid" onSubmit={(event) => runAction(() => createPurchase(event), "Η αγορά καταχωρήθηκε και ενημερώθηκε το απόθεμα")}>
               <label>Προμηθευτής<select name="supplierId" value={selectedSupplierId} onChange={(event) => setSelectedSupplierId(event.target.value)} required><option value="" disabled>Επιλογή προμηθευτή</option>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}{s.vatNumber ? ` (${s.vatNumber})` : ""}</option>)}</select></label>
@@ -1525,12 +1598,18 @@ export default function Home() {
             </form>
           </Panel>
 
+          {canManageUsers ? <div className="module-divider">
+            <span className="module-index">03</span>
+            <div><span>ΑΠΟΘΕΜΑ</span><h2>Προϊόντα & αποθήκες</h2></div>
+            <p>Οργάνωση καταλόγου, σειρών, αποθηκών και κινήσεων stock.</p>
+          </div> : null}
+
           <Panel title="Κατάλογος ειδών" icon={<Package size={19} />} id="products">
             <form className="form-grid" onSubmit={(event) => runAction(() => createFamily(event), "Η οικογένεια αποθηκεύτηκε")}><label className="wide">Νέα οικογένεια<input name="name" placeholder="π.χ. Υπηρεσίες ιστοσελίδας" required /></label><button disabled={busy || !selectedOrganizationId || !authenticated}>Προσθήκη οικογένειας</button></form>
             <form className="form-grid" onSubmit={(event) => runAction(() => createCategory(event), "Η κατηγορία αποθηκεύτηκε")}><label>Οικογένεια<select name="familyId" required defaultValue="">{<option value="" disabled>Επιλογή οικογένειας</option>}{catalog.map((family) => <option key={family.id} value={family.id}>{family.name}</option>)}</select></label><label>Νέα κατηγορία<input name="name" placeholder="π.χ. Κατασκευή" required /></label><button disabled={busy || !selectedOrganizationId || !authenticated}>Προσθήκη κατηγορίας</button></form>
             {catalog.map((family) => <div className="lookup valid" key={family.id}><strong>{family.name}</strong>{family.categories.map((category) => <div key={category.id}><p>{category.name}</p>{category.products.map((product) => <div key={product.id}><span>{product.name} · {money(product.unitPrice)}</span>{product.trackSerialNumbers ? <form className="form-grid" onSubmit={(event) => runAction(() => addSerial(event), "Ο σειριακός αριθμός αποθηκεύτηκε")}><input type="hidden" name="productId" value={product.id} /><label>Serial<input name="serialNumber" required /></label><label>Σημείωση<input name="notes" /></label><button disabled={busy || !authenticated}>Προσθήκη serial</button>{product.serials.map((serial) => <small key={serial.id}>{serial.serialNumber} · {serial.status}</small>)}</form> : null}</div>)}</div>)}</div>)}
           </Panel>
-          <Panel title="Προϊόν ή υπηρεσία" icon={<Package size={19} />} id="products">
+          <Panel title="Προϊόν ή υπηρεσία" icon={<Package size={19} />} id="product-form">
             <form className="form-grid" onSubmit={(event) => runAction(() => createProduct(event), "Το προϊόν αποθηκεύτηκε")}>
               <label>Κωδικός<input name="code" defaultValue={`ITEM-${String(products.length + 1).padStart(3, "0")}`} /></label>
               <label>Ονομασία<input name="name" defaultValue="Νέο είδος" required /></label>
@@ -1589,6 +1668,12 @@ export default function Home() {
             </form>
           </Panel>
 
+          {canSeeSales ? <div className="module-divider">
+            <span className="module-index">04</span>
+            <div><span>ΠΩΛΗΣΕΙΣ</span><h2>Προσφορές & εισπράξεις</h2></div>
+            <p>Δημιουργία προσφορών, παρακολούθηση συναλλαγών και καρτελών.</p>
+          </div> : null}
+
           <Panel title="Είσπραξη / Πληρωμή" icon={<BadgePercent size={19} />} id="payment-form">
             <form className="form-grid" onSubmit={(event) => runAction(() => createPayment(event), "Η πληρωμή/είσπραξη καταχωρήθηκε")}>
               <label>Τύπος<select value={paymentType} onChange={(e) => setPaymentType(e.target.value as any)}><option value="CUSTOMER_RECEIPT">📥 Είσπραξη από Πελάτη</option><option value="SUPPLIER_PAYMENT">📤 Πληρωμή σε Προμηθευτή</option></select></label>
@@ -1622,6 +1707,12 @@ export default function Home() {
               <button className="wide" disabled={busy || !selectedOrganizationId}>Δημιουργία Προσφοράς</button>
             </form>
           </Panel>
+
+          {canManageUsers ? <div className="module-divider">
+            <span className="module-index">05</span>
+            <div><span>ΔΙΑΣΥΝΔΕΣΕΙΣ</span><h2>Πάροχος ηλεκτρονικής τιμολόγησης</h2></div>
+            <p>Ρυθμίσεις παρόχου για την ενεργή επιχείρηση.</p>
+          </div> : null}
 
           <Panel title="Πάροχος" icon={<PlugZap size={19} />}>
             <form className="form-grid" onSubmit={(event) => runAction(() => saveProviderCredential(event), "Ο πάροχος αποθηκεύτηκε")}>
