@@ -33,6 +33,56 @@ body {
   margin: 0;
 }
 
+.erp-auth-page {
+  align-items: center;
+  background:
+    radial-gradient(ellipse at 78% 16%, rgba(189,132,39,.18), transparent 32%),
+    radial-gradient(ellipse at 16% 86%, rgba(15,118,110,.18), transparent 38%),
+    #e8eeeb;
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+  place-items: center;
+}
+
+.erp-auth-card {
+  background: rgba(255,255,255,.96);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 15px;
+  max-width: 460px;
+  padding: clamp(24px, 6vw, 42px);
+  width: 100%;
+}
+
+.erp-auth-card .brand-mark { margin-bottom: 4px; }
+.erp-auth-card .eyebrow { color: var(--accent-dark); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.erp-auth-card h1 { font: 600 clamp(30px, 6vw, 42px)/1.06 Georgia, "Times New Roman", serif; letter-spacing: -.04em; margin: 0; }
+.erp-auth-card p { color: var(--muted); line-height: 1.6; margin: 0; }
+.erp-auth-card form { display: grid; gap: 14px; margin-top: 6px; }
+.erp-auth-card form button { margin-top: 4px; }
+.erp-auth-card small { color: var(--muted); line-height: 1.5; }
+.erp-auth-message { background: #fff2ef; border: 1px solid #f0d0c8; border-radius: 8px; color: #923c2d; font-size: 13px; padding: 10px 12px; }
+.role-viewer .content form,
+.role-viewer .content button:not(.secondary[aria-label]) { display: none !important; }
+.role-accountant .content #quick-issue,
+.role-accountant .content #inventory,
+.role-accountant .content #products,
+.role-accountant .content #warehouses,
+.role-accountant .content #inventory-form,
+.role-accountant .content #stock-transfer { display: none !important; }
+.role-cashier .content #financials,
+.role-cashier .content #suppliers,
+.role-cashier .content #purchases-form,
+.role-cashier .content #purchases,
+.role-cashier .content #products,
+.role-cashier .content #warehouses,
+.role-cashier .content #inventory,
+.role-cashier .content #inventory-form,
+.role-cashier .content #stock-transfer { display: none !important; }
+
 button, input, select { font: inherit; }
 
 button {

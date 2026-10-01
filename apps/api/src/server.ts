@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import express from "express";
 import { authRouter } from "./routes/auth.js";
+import { userRouter } from "./routes/users.js";
 import { catalogRouter } from "./routes/catalog.js";
 import { customerRouter } from "./routes/customers.js";
 import { invoiceSeriesRouter } from "./routes/invoice-series.js";
@@ -36,6 +37,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
 
 app.use("/api", (req, res, next) => {
   if (req.path === "/wrapp/webhooks/user-created") return next();

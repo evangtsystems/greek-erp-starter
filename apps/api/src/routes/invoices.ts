@@ -5,7 +5,7 @@ import { prisma } from "../../../../packages/database/src/client.js";
 import { validateInvoiceReadiness } from "../services/invoice-readiness.js";
 import { issueInvoiceWithProvider } from "../services/provider-issue.js";
 import { issueWrappStagingInvoice } from "../services/wrapp-staging-issue.js";
-import { requireErpAdmin } from "../services/erp-session.js";
+import { requireErpAdmin, requireErpUserAdmin } from "../services/erp-session.js";
 
 export const invoiceRouter = Router();
 
@@ -124,7 +124,7 @@ invoiceRouter.get("/:id/readiness", async (req, res) => {
   });
 });
 
-invoiceRouter.post("/:id/issue-wrapp-staging", requireErpAdmin, async (req, res) => {
+invoiceRouter.post("/:id/issue-wrapp-staging", requireErpUserAdmin, async (req, res) => {
   const organizationId = String(req.body.organizationId ?? "");
   const invoiceId = String(req.params.id);
   try { res.status(201).json(await issueWrappStagingInvoice(organizationId, invoiceId)); }

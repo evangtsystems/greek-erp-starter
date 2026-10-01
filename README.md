@@ -31,3 +31,7 @@ npm --workspace @erp/api run dev
 5. Create a DRAFT invoice.
 6. Issue the invoice locally with atomic numbering.
 7. Later plug a certified provider into `packages/providers`.
+
+## User accounts
+
+Open `http://localhost:3000` and sign in with the existing administrator password (leave the email blank), or sign in with an account email and password. Administrators and owners can open **Χρήστες ERP** in the sidebar to create an `OWNER` account for a business owner. Passwords are stored as scrypt hashes; the session cookie is signed with `ERP_SESSION_SECRET`, falling back to `ERP_APP_PASSWORD` for existing local installations.

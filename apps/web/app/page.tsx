@@ -40,6 +40,8 @@ import {
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Organization = { id: string; name: string; country: string };
+type ErpUser = { id: string | null; email: string | null; name: string | null; role: "OWNER" | "ADMIN" | "CASHIER" | "ACCOUNTANT" | "VIEWER" };
+type ManagedUser = { id: string; email: string; name: string | null; role: ErpUser["role"]; createdAt: string };
 type Customer = { id: string; name: string; vatNumber: string | null };
 type Supplier = { id: string; name: string; vatNumber: string | null; email?: string | null; phone?: string | null; address?: string | null; city?: string | null };
 type Product = { id: string; code: string | null; name: string; description: string | null; unitPrice: string; vatRate: string; classificationType?: string | null; classificationCategory?: string | null; categoryId?: string | null; trackSerialNumbers?: boolean };
@@ -323,7 +325,12 @@ export default function Home() {
   const [customerName, setCustomerName] = useState("Acme Greek Customer");
   const [customerVat, setCustomerVat] = useState("099999999");
   const [authenticated, setAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<ErpUser | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
+  const [newUserRole, setNewUserRole] = useState<ErpUser["role"]>("OWNER");
   const [selectedTemplateId, setSelectedTemplateId] = useState("service");
   const [templatePrice, setTemplatePrice] = useState(100);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -439,6 +446,7 @@ export default function Home() {
     const data = await api<Organization[]>("/organizations");
     setOrganizations(data);
     setSelectedOrganizationId((current) => current || data[0]?.id || "");
+    return data;
   };
 
   const loadVatReport = async (organizationId: string, period = selectedPeriod) => {
@@ -512,15 +520,21 @@ export default function Home() {
   };
 
   useEffect(() => {
-    api<{ authenticated: boolean }>("/auth/session")
+    api<{ authenticated: boolean; user: ErpUser | null }>("/auth/session")
       .then(async (data) => {
         setAuthenticated(data.authenticated);
-        if (data.authenticated) await loadOrganizations();
+        setCurrentUser(data.user ?? (data.authenticated ? { id: null, email: null, name: "Administrator", role: "ADMIN" } : null));
+        if (data.authenticated) {
+          const organizations = await loadOrganizations();
+          if ((data.user?.role === "ADMIN" || data.user?.role === "OWNER") && (data.user?.id === null || organizations[0]?.id)) await loadManagedUsers(organizations[0]?.id);
+        }
         else clearErpData();
+        setAuthLoading(false);
       })
       .catch(() => {
         setAuthenticated(false);
         clearErpData();
+        setAuthLoading(false);
       });
   }, []);
 
@@ -559,16 +573,51 @@ export default function Home() {
   };
 
   const login = async () => {
-    await api("/auth/login", { method: "POST", body: JSON.stringify({ password: loginPassword }) });
+    const result = await api<{ user: ErpUser }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ ...(loginEmail.trim() ? { email: loginEmail.trim() } : {}), password: loginPassword })
+    });
     setAuthenticated(true);
+    setAuthLoading(false);
+    setCurrentUser(result.user);
+    setLoginEmail("");
     setLoginPassword("");
-    await loadOrganizations();
+    const organizations = await loadOrganizations();
+    if ((result.user.role === "ADMIN" || result.user.role === "OWNER") && (result.user.id === null || organizations[0]?.id)) await loadManagedUsers(organizations[0]?.id);
   };
 
   const logout = async () => {
     await api("/auth/logout", { method: "POST" });
     setAuthenticated(false);
+    setLoginEmail("");
+    setLoginPassword("");
+    setCurrentUser(null);
+    setManagedUsers([]);
     clearErpData();
+  };
+
+  const loadManagedUsers = async (organizationId = selectedOrganizationId) => {
+    setManagedUsers(await api<ManagedUser[]>(`/users${organizationId ? `?organizationId=${organizationId}` : ""}`));
+  };
+
+  const createManagedUser = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    await api(`/users?organizationId=${selectedOrganizationId}`, {
+      method: "POST",
+      body: JSON.stringify({
+        name: form.get("name"),
+        email: form.get("email"),
+        password: form.get("password"),
+        role: newUserRole,
+        organizationId: selectedOrganizationId
+      })
+    });
+    formElement.reset();
+    setNewUserRole("OWNER");
+    await loadManagedUsers(selectedOrganizationId);
+    setMessage("Ο χρήστης δημιουργήθηκε με επιτυχία");
   };
 
   const createOrganization = async (event: FormEvent<HTMLFormElement>) => {
@@ -1030,8 +1079,37 @@ export default function Home() {
     await loadTenantData(selectedOrganizationId);
   };
 
+  const role = currentUser?.role ?? "ADMIN";
+  const canManageUsers = role === "ADMIN" || role === "OWNER";
+  const canSeeFinance = canManageUsers || role === "ACCOUNTANT";
+  const canSeeSales = canManageUsers || role === "ACCOUNTANT" || role === "CASHIER";
+
+  if (authLoading) {
+    return <main className="erp-auth-page"><div className="erp-auth-card"><div className="brand-mark"><Landmark size={24} /></div><p className="eyebrow">Ελληνικό ERP</p><h1>Έλεγχος σύνδεσης</h1><p>Φόρτωση ασφαλούς συνεδρίας…</p></div></main>;
+  }
+
+  if (!authenticated) {
+    return (
+      <main className="erp-auth-page">
+        <section className="erp-auth-card">
+          <div className="brand-mark"><Landmark size={24} /></div>
+          <span className="eyebrow">Χώρος εργασίας · Ασφαλής σύνδεση</span>
+          <h1>Σύνδεση στο ERP</h1>
+          <p>Συνδέσου με τον προσωπικό λογαριασμό σου. Η πρόσβαση και οι λειτουργίες καθορίζονται από τον ρόλο σου.</p>
+          <form onSubmit={(event) => { event.preventDefault(); runAction(login, "Συνδέθηκες στο ERP"); }}>
+            <label>Email<input type="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} placeholder="name@company.gr" autoComplete="username" /></label>
+            <label>Κωδικός πρόσβασης<input type="password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} placeholder="Κωδικός πρόσβασης" autoComplete="current-password" required /></label>
+            <button type="submit" disabled={busy || !loginPassword}><LogIn size={17} />Σύνδεση</button>
+          </form>
+          {!loginEmail.trim() ? <small>Ο διαχειριστής μπορεί προσωρινά να συνδεθεί μόνο με τον υπάρχοντα κωδικό ERP.</small> : null}
+          {message !== "Έτοιμο" ? <div className="erp-auth-message" role="status">{message}</div> : null}
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <main className="workspace">
+    <main className={`workspace role-${(currentUser?.role || "ADMIN").toLowerCase()}`}>
       {/* Mobile Top Header with Hamburger */}
       <header className="mobile-header">
         <div className="brand">
@@ -1094,15 +1172,16 @@ export default function Home() {
 
         <nav>
           <a href="#overview" onClick={() => setMobileMenuOpen(false)}><ReceiptText size={18} />Επισκόπηση</a>
-          <a href="#financials" onClick={() => setMobileMenuOpen(false)}><Calculator size={18} />Περιοδική ΦΠΑ</a>
-          <a href="#ledgers" onClick={() => setMobileMenuOpen(false)}><BadgePercent size={18} />Εισπράξεις & Καρτέλες</a>
-          <a href="#quotes-orders" onClick={() => setMobileMenuOpen(false)}><FileSpreadsheet size={18} />Προσφορές & Παραγγελίες</a>
-          <a href="#customers" onClick={() => setMobileMenuOpen(false)}><Users size={18} />Πελάτες</a>
-          <a href="#suppliers" onClick={() => setMobileMenuOpen(false)}><Truck size={18} />Προμηθευτές</a>
-          <a href="#purchases-form" onClick={() => setMobileMenuOpen(false)}><ShoppingCart size={18} />Αγορές & Έξοδα</a>
-          <a href="#products" onClick={() => setMobileMenuOpen(false)}><Package size={18} />Προϊόντα & Κατάλογος</a>
-          <a href="#inventory" onClick={() => setMobileMenuOpen(false)}><Boxes size={18} />Αποθήκη & Stock</a>
+          {canSeeFinance ? <a href="#financials" onClick={() => setMobileMenuOpen(false)}><Calculator size={18} />Περιοδική ΦΠΑ</a> : null}
+          {canSeeSales ? <a href="#ledgers" onClick={() => setMobileMenuOpen(false)}><BadgePercent size={18} />Εισπράξεις & Καρτέλες</a> : null}
+          {canSeeSales ? <a href="#quotes-orders" onClick={() => setMobileMenuOpen(false)}><FileSpreadsheet size={18} />Προσφορές & Παραγγελίες</a> : null}
+          {canSeeSales ? <a href="#customers" onClick={() => setMobileMenuOpen(false)}><Users size={18} />Πελάτες</a> : null}
+          {canSeeFinance ? <a href="#suppliers" onClick={() => setMobileMenuOpen(false)}><Truck size={18} />Προμηθευτές</a> : null}
+          {canSeeFinance ? <a href="#purchases-form" onClick={() => setMobileMenuOpen(false)}><ShoppingCart size={18} />Αγορές & Έξοδα</a> : null}
+          {canManageUsers ? <a href="#products" onClick={() => setMobileMenuOpen(false)}><Package size={18} />Προϊόντα & Κατάλογος</a> : null}
+          {canManageUsers ? <a href="#inventory" onClick={() => setMobileMenuOpen(false)}><Boxes size={18} />Αποθήκη & Stock</a> : null}
           <a href="#invoices" onClick={() => setMobileMenuOpen(false)}><FileText size={18} />Παραστατικά</a>
+          {currentUser?.role === "ADMIN" || currentUser?.role === "OWNER" ? <a href="#user-management" onClick={() => setMobileMenuOpen(false)}><Users size={18} />Χρήστες ERP</a> : null}
         </nav>
 
         <div className="sidebar-auth-card">
@@ -1110,7 +1189,7 @@ export default function Home() {
             <div>
               <div className="auth-badge">
                 <ShieldCheck size={16} color="#1f6b45" />
-                <span>Συνδεδεμένος στο ERP</span>
+                <span>{currentUser?.name || currentUser?.email || "Συνδεδεμένος στο ERP"} · {currentUser?.role || "ADMIN"}</span>
               </div>
               <button
                 type="button"
@@ -1127,12 +1206,23 @@ export default function Home() {
           ) : (
             <div className="auth-login-form">
               <label>
-                Κωδικός ERP
+                Email χρήστη <small>(κενό για τον παλιό κωδικό διαχειριστή)</small>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="boss@example.gr"
+                  autoComplete="username"
+                />
+              </label>
+              <label>
+                Κωδικός πρόσβασης
                 <input
                   type="password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="Κωδικός από .env..."
+                  placeholder="Κωδικός πρόσβασης"
+                  autoComplete="current-password"
                 />
               </label>
               <button
@@ -1333,7 +1423,7 @@ export default function Home() {
         </section>
 
         <section className="board">
-          <Panel title="Επιχείρηση" icon={<Building2 size={19} />}>
+          {currentUser?.id === null ? <Panel title="Επιχείρηση" icon={<Building2 size={19} />}>
             <form className="form-grid" onSubmit={(event) => runAction(() => createOrganization(event), "Η επιχείρηση αποθηκεύτηκε")}>
               <label className="wide">Επωνυμία<input name="name" defaultValue="My First ERP Company" required /></label>
               <label>ΑΦΜ<input name="vatNumber" defaultValue="099999999" /></label>
@@ -1344,7 +1434,7 @@ export default function Home() {
               <label>Χώρα<input name="country" defaultValue="GR" required /></label>
               <button disabled={busy}>Αποθήκευση</button>
             </form>
-          </Panel>
+          </Panel> : null}
 
           <Panel title="Πελάτης" icon={<Users size={19} />} id="customers">
             <form className="form-grid" onSubmit={(event) => runAction(() => createCustomer(event), "Ο πελάτης αποθηκεύτηκε")}>
@@ -2084,7 +2174,7 @@ export default function Home() {
                     type="button"
                     className="secondary"
                     style={{ minHeight: 32, padding: "0 8px", fontSize: 12 }}
-                    onClick={() => window.open(`/erp-api/invoices/${invoice.id}/print?autoprint=1`, "_blank")}
+                    onClick={() => window.open(`/erp-api/invoices/${invoice.id}/print?organizationId=${selectedOrganizationId}&autoprint=1`, "_blank")}
                   >
                     <Printer size={14} />Εκτύπωση/PDF
                   </button>
@@ -2093,6 +2183,36 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {currentUser?.role === "ADMIN" || currentUser?.role === "OWNER" ? (
+          <Panel icon={<Users />} title="Χρήστες ERP" id="user-management">
+            <p className="muted">Δημιούργησε ξεχωριστό λογαριασμό για τον εργοδότη ή την ομάδα σου. Ο ρόλος Ιδιοκτήτης έχει πλήρη πρόσβαση στη ροή εργασιών.</p>
+            <form className="form-grid" onSubmit={(event) => runAction(() => createManagedUser(event), "Ο λογαριασμός δημιουργήθηκε")}>
+              <label>Ονοματεπώνυμο<input name="name" required minLength={2} maxLength={120} placeholder="Όνομα χρήστη" /></label>
+              <label>Email<input name="email" type="email" required maxLength={254} placeholder="boss@example.gr" autoComplete="off" /></label>
+              <label>Προσωρινός κωδικός<input name="password" type="password" required minLength={12} maxLength={128} placeholder="Τουλάχιστον 12 χαρακτήρες" autoComplete="new-password" /></label>
+              <label>Ρόλος<select name="role" value={newUserRole} onChange={(event) => setNewUserRole(event.target.value as ErpUser["role"])}>
+                <option value="OWNER">Ιδιοκτήτης · Πλήρης πρόσβαση</option>
+                <option value="ADMIN">Διαχειριστής · Πλήρης πρόσβαση</option>
+                <option value="ACCOUNTANT">Λογιστής</option>
+                <option value="CASHIER">Ταμίας</option>
+                <option value="VIEWER">Μόνο προβολή</option>
+              </select></label>
+              <button disabled={busy}>Δημιουργία λογαριασμού</button>
+            </form>
+            <div className="lookup" style={{ marginTop: 18 }}>
+              <strong>Υφιστάμενοι χρήστες</strong>
+              {managedUsers.length === 0 ? <p className="empty">Δεν υπάρχουν λογαριασμοί με email ακόμη.</p> : (
+                <div className="table-wrap">
+                  <table>
+                    <thead><tr><th>Όνομα</th><th>Email</th><th>Ρόλος</th></tr></thead>
+                    <tbody>{managedUsers.map((user) => <tr key={user.id}><td>{user.name || "—"}</td><td>{user.email}</td><td>{user.role}</td></tr>)}</tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </Panel>
+        ) : null}
       </section>
     </main>
   );
