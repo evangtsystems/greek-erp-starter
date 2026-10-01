@@ -556,6 +556,161 @@ button.template-card:hover, button.template-card.selected {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+#user-management {
+  grid-column: 1 / -1;
+  padding: 22px;
+}
+
+.user-management-intro {
+  border-left: 3px solid var(--accent);
+  margin: 0 0 18px;
+  padding: 2px 0 2px 12px;
+}
+
+.user-management-intro > span,
+.user-list-heading > div > span {
+  color: var(--accent-dark);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.user-management-intro p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 5px 0 0;
+  max-width: 760px;
+}
+
+.user-create-form {
+  background: #f6f9f8;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 16px;
+}
+
+.user-create-form label {
+  min-width: 0;
+}
+
+.user-create-submit {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-width: 230px;
+}
+
+.user-list {
+  margin-top: 22px;
+}
+
+.user-list-heading {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.user-list-heading h3 {
+  font-size: 16px;
+  letter-spacing: 0;
+  margin: 3px 0 0;
+}
+
+.user-count {
+  background: var(--soft);
+  border: 1px solid #d9eee6;
+  border-radius: 999px;
+  color: var(--accent-dark);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.user-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow-x: auto;
+}
+
+.user-table {
+  border-collapse: collapse;
+  min-width: 520px;
+  text-align: left;
+  width: 100%;
+}
+
+.user-table th {
+  background: #f1f6f5;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  padding: 11px 14px;
+  text-transform: uppercase;
+}
+
+.user-table td {
+  border-bottom: 1px solid #edf1f0;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 12px 14px;
+}
+
+.user-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.user-table tbody tr:hover {
+  background: #fbfdfc;
+}
+
+.user-email {
+  color: var(--muted) !important;
+  overflow-wrap: anywhere;
+}
+
+.user-role-badge {
+  background: #eef2f3;
+  border-radius: 999px;
+  color: #425359;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+
+.user-role-badge.role-owner,
+.user-role-badge.role-admin {
+  background: #dff4ec;
+  color: #0a665b;
+}
+
+.user-role-badge.role-accountant {
+  background: #eaf1fb;
+  color: #315e91;
+}
+
+.user-role-badge.role-cashier {
+  background: #fff4df;
+  color: #8c6119;
+}
+
+.user-empty {
+  background: #f7faf9;
+  border: 1px dashed var(--line-strong);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+  padding: 18px;
+}
+
 .wide, .lookup {
   grid-column: 1 / -1;
 }
@@ -956,6 +1111,20 @@ button.warning:hover {
   .form-grid,
   .metrics {
     grid-template-columns: 1fr;
+  }
+
+  #user-management {
+    padding: 15px;
+  }
+
+  .user-create-form {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .user-create-submit {
+    justify-self: stretch;
+    min-width: 0;
   }
 
   .template-grid {

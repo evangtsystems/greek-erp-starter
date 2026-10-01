@@ -2186,8 +2186,11 @@ export default function Home() {
 
         {currentUser?.role === "ADMIN" || currentUser?.role === "OWNER" ? (
           <Panel icon={<Users />} title="Χρήστες ERP" id="user-management">
-            <p className="muted">Δημιούργησε ξεχωριστό λογαριασμό για τον εργοδότη ή την ομάδα σου. Ο ρόλος Ιδιοκτήτης έχει πλήρη πρόσβαση στη ροή εργασιών.</p>
-            <form className="form-grid" onSubmit={(event) => runAction(() => createManagedUser(event), "Ο λογαριασμός δημιουργήθηκε")}>
+            <div className="user-management-intro">
+              <span>ΠΡΟΣΒΑΣΗ ΟΜΑΔΑΣ</span>
+              <p>Δημιούργησε ξεχωριστούς λογαριασμούς για την ομάδα αυτής της επιχείρησης. Κάθε χρήστης θα συνδέεται με το δικό του email και κωδικό.</p>
+            </div>
+            <form className="user-create-form" onSubmit={(event) => runAction(() => createManagedUser(event), "Ο λογαριασμός δημιουργήθηκε")}>
               <label>Ονοματεπώνυμο<input name="name" required minLength={2} maxLength={120} placeholder="Όνομα χρήστη" /></label>
               <label>Email<input name="email" type="email" required maxLength={254} placeholder="boss@example.gr" autoComplete="off" /></label>
               <label>Προσωρινός κωδικός<input name="password" type="password" required minLength={12} maxLength={128} placeholder="Τουλάχιστον 12 χαρακτήρες" autoComplete="new-password" /></label>
@@ -2198,15 +2201,22 @@ export default function Home() {
                 <option value="CASHIER">Ταμίας</option>
                 <option value="VIEWER">Μόνο προβολή</option>
               </select></label>
-              <button disabled={busy}>Δημιουργία λογαριασμού</button>
+              <button className="user-create-submit" disabled={busy}>Δημιουργία λογαριασμού</button>
             </form>
-            <div className="lookup" style={{ marginTop: 18 }}>
-              <strong>Υφιστάμενοι χρήστες</strong>
-              {managedUsers.length === 0 ? <p className="empty">Δεν υπάρχουν λογαριασμοί με email ακόμη.</p> : (
-                <div className="table-wrap">
-                  <table>
-                    <thead><tr><th>Όνομα</th><th>Email</th><th>Ρόλος</th></tr></thead>
-                    <tbody>{managedUsers.map((user) => <tr key={user.id}><td>{user.name || "—"}</td><td>{user.email}</td><td>{user.role}</td></tr>)}</tbody>
+            <div className="user-list">
+              <div className="user-list-heading">
+                <div><span>ΛΟΓΑΡΙΑΣΜΟΙ</span><h3>Υφιστάμενοι χρήστες</h3></div>
+                <span className="user-count">{managedUsers.length} {managedUsers.length === 1 ? "χρήστης" : "χρήστες"}</span>
+              </div>
+              {managedUsers.length === 0 ? <p className="user-empty">Δεν υπάρχουν λογαριασμοί για αυτή την επιχείρηση ακόμη.</p> : (
+                <div className="user-table-wrap">
+                  <table className="user-table">
+                    <thead><tr><th>Χρήστης</th><th>Email σύνδεσης</th><th>Ρόλος</th></tr></thead>
+                    <tbody>{managedUsers.map((user) => <tr key={user.id}>
+                      <td><strong>{user.name || "—"}</strong></td>
+                      <td className="user-email">{user.email}</td>
+                      <td><span className={`user-role-badge role-${user.role.toLowerCase()}`}>{user.role === "OWNER" ? "Ιδιοκτήτης" : user.role === "ADMIN" ? "Διαχειριστής" : user.role === "ACCOUNTANT" ? "Λογιστής" : user.role === "CASHIER" ? "Ταμίας" : "Προβολή"}</span></td>
+                    </tr>)}</tbody>
                   </table>
                 </div>
               )}
