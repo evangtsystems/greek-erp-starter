@@ -638,23 +638,31 @@ button.template-card:hover, button.template-card.selected {
 
 .module-divider {
   align-items: center;
-  border-bottom: 1px solid var(--line);
-  border-top: 1px solid var(--line);
+  background: var(--module-wash, #f4f6f6);
+  border: 1px solid var(--module-line, #d5dddf);
+  border-left: 7px solid var(--module-accent, #405669);
+  border-radius: 12px;
   display: grid;
   gap: 14px;
   grid-column: 1 / -1;
   grid-template-columns: auto minmax(220px, .8fr) minmax(180px, 1.2fr);
-  margin-top: 12px;
-  padding: 15px 6px;
+  margin-top: 22px;
+  padding: 17px 18px;
   scroll-margin-top: 90px;
 }
 
+.module-contacts { --module-accent: #315f7b; --module-wash: #eef5f8; --module-line: #d2e1e8; }
+.module-expenses { --module-accent: #a95720; --module-wash: #fff4e9; --module-line: #edd8c5; }
+.module-stock { --module-accent: #315b88; --module-wash: #eef3f9; --module-line: #d5dfec; }
+.module-sales { --module-accent: #91453d; --module-wash: #fbefed; --module-line: #ecd6d3; }
+.module-integrations { --module-accent: #56636b; --module-wash: #f0f3f4; --module-line: #dbe1e3; }
+
 .module-index {
   align-items: center;
-  background: var(--soft);
-  border: 1px solid #d9eee6;
+  background: #fff;
+  border: 2px solid var(--module-accent, #405669);
   border-radius: 9px;
-  color: var(--accent-dark);
+  color: var(--module-accent, #405669);
   display: inline-flex;
   font-size: 11px;
   font-weight: 900;
@@ -664,17 +672,18 @@ button.template-card:hover, button.template-card.selected {
 }
 
 .module-divider > div > span {
-  color: var(--gold);
-  font-size: 9px;
+  color: var(--module-accent, #405669);
+  font-size: 11px;
   font-weight: 900;
-  letter-spacing: .12em;
+  letter-spacing: .08em;
 }
 
 .module-divider h2 {
   color: var(--ink);
-  font-size: 17px;
+  font-size: 20px;
   letter-spacing: -.02em;
-  margin: 3px 0 0;
+  line-height: 1.2;
+  margin: 4px 0 0;
 }
 
 .module-divider p {
@@ -868,6 +877,13 @@ button.template-card:hover, button.template-card.selected {
   padding: 18px;
 }
 
+#user-management {
+  --sector-accent: #76521f;
+  --sector-wash: #fff8eb;
+  border-left: 7px solid var(--sector-accent);
+  margin-top: 28px;
+}
+
 .wide, .lookup {
   grid-column: 1 / -1;
 }
@@ -1016,15 +1032,58 @@ button.warning:hover {
 }
 
 .inventory-section {
-  border-top: 1px solid var(--line-strong);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 8px solid var(--sector-accent, #405669);
+  border-radius: 16px;
   display: grid;
-  gap: 16px;
-  margin-top: 34px;
-  padding-top: 22px;
+  gap: 20px;
+  margin-top: 38px;
+  padding: 23px;
   scroll-margin-top: 84px;
+  box-shadow: 0 12px 30px rgba(23, 33, 36, .065);
 }
 
-.invoice-section { scroll-margin-top: 84px; }
+#financials { --sector-accent: #a45a12; --sector-wash: #fff5e7; }
+#inventory { --sector-accent: #315b88; --sector-wash: #eef3f9; }
+#purchases { --sector-accent: #a95720; --sector-wash: #fff4e9; }
+#ledgers { --sector-accent: #47714c; --sector-wash: #eff6ed; }
+#quotes-orders { --sector-accent: #8d4b3f; --sector-wash: #fbefed; }
+#invoices { --sector-accent: #344f70; --sector-wash: #eef2f7; }
+
+.inventory-section .section-title,
+.invoice-section .section-title {
+  background: var(--sector-wash, #f2f5f6);
+  border: 1px solid var(--line);
+  border-left: 7px solid var(--sector-accent, #405669);
+  border-radius: 11px;
+  margin: 0 0 2px;
+  padding: 17px 19px;
+}
+
+.inventory-section .section-title .eyebrow,
+.invoice-section .section-title .eyebrow {
+  color: var(--sector-accent, #405669);
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.inventory-section .section-title h2,
+.invoice-section .section-title h2 {
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.invoice-section {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 8px solid var(--sector-accent, #405669);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(23, 33, 36, .065);
+  margin-top: 38px;
+  padding: 23px;
+  scroll-margin-top: 84px;
+}
 
 .data-table-container {
   overflow-x: auto;

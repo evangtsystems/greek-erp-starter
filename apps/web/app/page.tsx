@@ -1509,7 +1509,7 @@ export default function Home() {
             </form>
           </Panel> : null}
 
-          <div className="module-divider">
+          <div className="module-divider module-contacts">
             <span className="module-index">01</span>
             <div><span>ΜΗΤΡΩΑ</span><h2>Πελάτες & συνεργάτες</h2></div>
             <p>Στοιχεία πελατών και προμηθευτών της ενεργής επιχείρησης.</p>
@@ -1589,7 +1589,7 @@ export default function Home() {
             </form>
           </Panel>
 
-          {canSeeFinance ? <div className="module-divider">
+          {canSeeFinance ? <div className="module-divider module-expenses">
             <span className="module-index">02</span>
             <div><span>ΕΞΟΔΑ</span><h2>Αγορές & δαπάνες</h2></div>
             <p>Καταχώριση αγορών και παραστατικών εξόδων.</p>
@@ -1610,7 +1610,7 @@ export default function Home() {
             </form>
           </Panel>
 
-          {canManageUsers ? <div className="module-divider">
+          {canManageUsers ? <div className="module-divider module-stock">
             <span className="module-index">03</span>
             <div><span>ΑΠΟΘΕΜΑ</span><h2>Προϊόντα & αποθήκες</h2></div>
             <p>Οργάνωση καταλόγου, σειρών, αποθηκών και κινήσεων stock.</p>
@@ -1680,7 +1680,7 @@ export default function Home() {
             </form>
           </Panel>
 
-          {canSeeSales ? <div className="module-divider">
+          {canSeeSales ? <div className="module-divider module-sales">
             <span className="module-index">04</span>
             <div><span>ΠΩΛΗΣΕΙΣ</span><h2>Προσφορές & εισπράξεις</h2></div>
             <p>Δημιουργία προσφορών, παρακολούθηση συναλλαγών και καρτελών.</p>
@@ -1720,7 +1720,7 @@ export default function Home() {
             </form>
           </Panel>
 
-          {canManageUsers ? <div className="module-divider">
+          {canManageUsers ? <div className="module-divider module-integrations">
             <span className="module-index">05</span>
             <div><span>ΔΙΑΣΥΝΔΕΣΕΙΣ</span><h2>Πάροχος ηλεκτρονικής τιμολόγησης</h2></div>
             <p>Ρυθμίσεις παρόχου για την ενεργή επιχείρηση.</p>
