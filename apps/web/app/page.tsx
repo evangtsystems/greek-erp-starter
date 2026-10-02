@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  ArrowUp,
   BadgePercent,
   Ban,
   Boxes,
@@ -1316,7 +1317,7 @@ export default function Home() {
         </header>
 
         <nav className="section-rail" aria-label="Γρήγορη πλοήγηση στις ενότητες">
-          <span className="section-rail-label">ΕΝΟΤΗΤΕΣ</span>
+          <span className="section-rail-label">ΕΝΟΤΗΤΕΣ <span aria-hidden="true">→</span></span>
           {sectionLinks.map((item, index) => (
             <a
               key={item.id}
@@ -1328,6 +1329,17 @@ export default function Home() {
             </a>
           ))}
         </nav>
+        {activeSection !== "overview" ? (
+          <button
+            type="button"
+            className="back-to-overview"
+            aria-label="Επιστροφή στην αρχή του ERP"
+            onClick={() => document.getElementById("overview")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            <ArrowUp size={21} strokeWidth={2.5} />
+            <span>Πίσω στην αρχή</span>
+          </button>
+        ) : null}
 
         <section className="metrics">
           <Metric icon={<Users />} label="Πελάτες" value={customers.length} />

@@ -326,15 +326,15 @@ nav a:hover {
 .section-rail {
   align-items: center;
   backdrop-filter: blur(14px);
-  background: rgba(248, 250, 249, .94);
-  border: 1px solid rgba(185, 200, 197, .8);
+  background: rgba(255, 248, 231, .97);
+  border: 2px solid #d8bd7d;
   border-radius: 12px;
-  box-shadow: 0 8px 22px rgba(23, 33, 36, .08);
+  box-shadow: 0 8px 22px rgba(64, 49, 23, .12);
   display: flex;
-  gap: 5px;
+  gap: 7px;
   margin: 0 0 20px;
   overflow-x: auto;
-  padding: 7px;
+  padding: 8px;
   position: sticky;
   scrollbar-width: none;
   top: 10px;
@@ -344,52 +344,88 @@ nav a:hover {
 .section-rail::-webkit-scrollbar { display: none; }
 
 .section-rail-label {
-  color: var(--muted);
+  color: #604b25;
   flex: 0 0 auto;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: .11em;
-  padding: 0 9px;
+  letter-spacing: .04em;
+  padding: 0 10px;
+  white-space: nowrap;
 }
+
+.section-rail-label span { color: #936518; font-size: 16px; }
 
 .section-rail a {
   align-items: center;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: #526367;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  color: #263943;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 800;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 11px;
+  font-size: 16px;
+  font-weight: 750;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 14px;
   text-decoration: none;
   transition: background .16s ease, color .16s ease, border-color .16s ease;
 }
 
 .section-rail a > span {
-  color: #849397;
-  font-size: 9px;
+  color: #806c46;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 900;
 }
 
 .section-rail a:hover {
-  background: #edf4f1;
-  border-color: #dce9e4;
-  color: var(--accent-dark);
+  background: #f5e8c9;
+  border-color: #c9a64f;
+  color: #172b40;
 }
 
 .section-rail a.active,
 .section-rail a.active:hover {
-  background: var(--accent-dark);
-  border-color: var(--accent-dark);
+  background: #263d5c;
+  border-color: #263d5c;
+  box-shadow: inset 0 -4px 0 #e1b34e;
   color: #fff;
 }
 
-.section-rail a.active > span { color: #bce4d6; }
+.section-rail a.active > span { color: #f4d98f; }
+
+.back-to-overview {
+  align-items: center;
+  background: #854515;
+  border: 2px solid #fff4d8;
+  border-radius: 999px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  box-shadow: 0 5px 18px rgba(45, 34, 17, .28), 0 0 0 1px #854515;
+  color: #fff;
+  display: inline-flex;
+  font-size: 16px;
+  font-weight: 800;
+  gap: 9px;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 20px;
+  position: fixed;
+  right: 22px;
+  z-index: 80;
+}
+
+.back-to-overview:hover {
+  background: #68330e;
+  border-color: #fff;
+  color: #fff;
+}
+
+.back-to-overview:focus-visible,
+.section-rail a:focus-visible {
+  outline: 3px solid #172b40;
+  outline-offset: 3px;
+}
 
 .hero {
   align-items: stretch;
@@ -1209,9 +1245,18 @@ button.warning:hover {
     border-radius: 10px;
     margin-bottom: 16px;
     top: 62px;
+    width: 100%;
   }
 
-  .section-rail-label { display: none; }
+  .section-rail-label { font-size: 11px; padding: 0 7px; }
+  .section-rail a { font-size: 15px; min-height: 48px; padding: 0 12px; }
+
+  .back-to-overview {
+    bottom: max(14px, env(safe-area-inset-bottom));
+    min-height: 54px;
+    padding: 0 17px;
+    right: 14px;
+  }
 
   .hero, .board, .invoice-card {
     grid-template-columns: 1fr;
